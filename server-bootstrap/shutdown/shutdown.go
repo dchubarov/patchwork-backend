@@ -7,7 +7,7 @@ import (
 	"golang.org/x/exp/slices"
 	"sync"
 	"time"
-	"twowls.org/patchwork/backend/logging"
+	"twowls.org/patchwork/server/bootstrap/logging"
 )
 
 type hookFunc func(ctx context.Context) error

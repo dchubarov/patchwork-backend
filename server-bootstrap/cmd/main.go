@@ -5,10 +5,10 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"twowls.org/patchwork/backend/apiserver"
-	"twowls.org/patchwork/backend/database"
-	"twowls.org/patchwork/backend/logging"
-	"twowls.org/patchwork/backend/shutdown"
+	"twowls.org/patchwork/server/bootstrap/apiserver"
+	"twowls.org/patchwork/server/bootstrap/database"
+	"twowls.org/patchwork/server/bootstrap/logging"
+	"twowls.org/patchwork/server/bootstrap/shutdown"
 )
 
 func main() {

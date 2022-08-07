@@ -5,8 +5,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"twowls.org/patchwork/backend/config"
-	"twowls.org/patchwork/backend/logging"
+	"twowls.org/patchwork/server/bootstrap/config"
+	"twowls.org/patchwork/server/bootstrap/logging"
 )
 
 type Client struct {

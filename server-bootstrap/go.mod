@@ -1,4 +1,4 @@
-module twowls.org/patchwork/backend
+module twowls.org/patchwork/server/bootstrap
 
 go 1.18
 

@@ -5,7 +5,7 @@ import (
 	"github.com/rs/zerolog"
 	"os"
 	"time"
-	"twowls.org/patchwork/backend/config"
+	"twowls.org/patchwork/server/bootstrap/config"
 )
 
 const (

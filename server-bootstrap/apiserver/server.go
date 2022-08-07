@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-	"twowls.org/patchwork/backend/config"
-	"twowls.org/patchwork/backend/logging"
-	"twowls.org/patchwork/backend/shutdown"
+	"twowls.org/patchwork/server/bootstrap/config"
+	"twowls.org/patchwork/server/bootstrap/logging"
+	"twowls.org/patchwork/server/bootstrap/shutdown"
 )
 
 const (

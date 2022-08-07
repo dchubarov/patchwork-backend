@@ -6,10 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
-	"twowls.org/patchwork/backend/apiserver/auth"
-	"twowls.org/patchwork/backend/apiserver/health"
-	"twowls.org/patchwork/backend/config"
-	"twowls.org/patchwork/backend/logging"
+	"twowls.org/patchwork/server/bootstrap/apiserver/auth"
+	"twowls.org/patchwork/server/bootstrap/apiserver/health"
+	"twowls.org/patchwork/server/bootstrap/config"
+	"twowls.org/patchwork/server/bootstrap/logging"
 )
 
 func Router(log logging.Facade) http.Handler {
