@@ -7,14 +7,27 @@ import (
 	"path"
 	"plugin"
 	"strings"
+	"sync"
 	"twowls.org/patchwork/commons/extension"
 	"twowls.org/patchwork/server/bootstrap/config"
+)
+
+var (
+	loaded = make(map[string]extension.PluginInfo)
+	mu     sync.Mutex
 )
 
 func Load(name string) (extension.PluginInfo, error) {
 	location, err := resolve(name)
 	if err != nil {
 		return nil, err
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	if p, found := loaded[location]; found {
+		return p, nil
 	}
 
 	module, err := plugin.Open(location)
@@ -30,7 +43,12 @@ func Load(name string) (extension.PluginInfo, error) {
 	if entrypointFunc, ok := entrypoint.(func() (extension.PluginInfo, error)); !ok {
 		return nil, errors.New(fmt.Sprintf("invalid plugin entrypoint type: %t", entrypoint))
 	} else {
-		return entrypointFunc()
+		info, err := entrypointFunc()
+		if err != nil {
+			return nil, errors.New(fmt.Sprintf("plugin entrypoint invocation error: %v", err))
+		}
+		loaded[location] = info
+		return info, nil
 	}
 }
 
