@@ -6,10 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+	"twowls.org/patchwork/commons/logging"
 	"twowls.org/patchwork/server/bootstrap/apiserver/auth"
 	"twowls.org/patchwork/server/bootstrap/apiserver/health"
 	"twowls.org/patchwork/server/bootstrap/config"
-	"twowls.org/patchwork/server/bootstrap/logging"
 )
 
 func Router(log logging.Facade) http.Handler {
@@ -41,7 +41,7 @@ func loggingMiddleware(log logging.Facade) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()
 
-		fields := map[string]interface{}{
+		fields := map[string]any{
 			"method": c.Request.Method,
 			"path":   c.Request.URL.Path,
 			"from":   c.ClientIP(),
@@ -55,7 +55,7 @@ func loggingMiddleware(log logging.Facade) gin.HandlerFunc {
 
 func coloredHttpStatus(status int) string {
 	result := strconv.Itoa(status)
-	if config.Values().Log.NoColor {
+	if config.Values().Logging.NoColor {
 		return result
 	}
 

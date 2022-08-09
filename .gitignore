@@ -1,4 +1,5 @@
-build/
-logs/
-plugins/
-vendor/
+/build/
+/plugins/
+/logs/
+
+**/vendor/

@@ -24,11 +24,14 @@ type Database struct {
 	Password string `envconfig:"optional"`
 }
 
-type Log struct {
+// Logging contains logging configuration
+type Logging struct {
 	// Level specifies logging level
 	Level string `envconfig:"default=info"`
 	// NoColor specifies whether not to use ANSI colors in console
 	NoColor bool `envconfig:"optional"`
+	// Plugin specifies logging plugin name
+	Plugin string `envconfig:"optional"`
 }
 
 // Root contains application configuration
@@ -37,8 +40,10 @@ type Root struct {
 	Apiserver Apiserver
 	// Database database configuration
 	Database Database
-	// Log logging configuration
-	Log Log
+	// Logging logging configuration
+	Logging Logging
+	// PluginsDir specifies plugins directory
+	PluginsDir string
 }
 
 var (
