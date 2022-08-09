@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/exp/slices"
-	"sync"
 	"time"
+	"twowls.org/patchwork/commons/utils/singleton"
 	"twowls.org/patchwork/server/bootstrap/logging"
 )
 
@@ -27,8 +27,9 @@ type Shutdown struct {
 }
 
 var (
-	shutdown Shutdown
-	once     sync.Once
+	s = singleton.NewLazy(func() *Shutdown {
+		return &Shutdown{}
+	})
 )
 
 func (s *Shutdown) Register(tag string, timeout time.Duration, handler hookFunc) {
@@ -90,20 +91,12 @@ func (s *Shutdown) ShutdownAll() {
 	}
 }
 
-// Instance returns default instance of Shutdown
-func Instance() *Shutdown {
-	once.Do(func() {
-		shutdown = Shutdown{}
-	})
-	return &shutdown
+// All is a shortcut for Shutdown.ShutdownAll() on default instance
+func All() {
+	s.Instance().ShutdownAll()
 }
 
 // Register is a shortcut for Shutdown.Register() on default instance
 func Register(tag string, timeout time.Duration, handler hookFunc) {
-	Instance().Register(tag, timeout, handler)
-}
-
-// All is a shortcut for Shutdown.ShutdownAll() on default instance
-func All() {
-	Instance().ShutdownAll()
+	s.Instance().Register(tag, timeout, handler)
 }
