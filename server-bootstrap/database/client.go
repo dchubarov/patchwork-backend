@@ -3,8 +3,8 @@ package database
 import (
 	"context"
 	"strings"
-	"sync"
 	"time"
+	"twowls.org/patchwork/commons/utils/singleton"
 	"twowls.org/patchwork/server/bootstrap/config"
 	"twowls.org/patchwork/server/bootstrap/database/mongo"
 	"twowls.org/patchwork/server/bootstrap/logging"
@@ -21,22 +21,23 @@ type ClientMethods interface {
 
 var (
 	log    = logging.Context("database")
-	client ClientMethods
-	once   sync.Once
-)
-
-func Client() ClientMethods {
-	once.Do(func() {
+	client = singleton.NewLazy(func() ClientMethods {
+		var c ClientMethods
 		cfg := config.Values().Database
 		if strings.HasPrefix(cfg.Url, "mongodb://") {
-			client = mongo.New(cfg)
+			c = mongo.New(cfg)
 		} else {
 			log.Panic("connection url specifies unknown database type: %s", cfg.Url)
 		}
 
-		if client != nil {
-			shutdown.Register("database", 3*time.Second, client.Disconnect)
+		if c != nil {
+			shutdown.Register("database", 3*time.Second, c.Disconnect)
 		}
+
+		return c
 	})
-	return client
+)
+
+func Client() ClientMethods {
+	return client.Instance()
 }
