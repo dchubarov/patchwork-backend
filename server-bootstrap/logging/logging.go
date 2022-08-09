@@ -3,55 +3,51 @@ package logging
 import (
 	"errors"
 	"strings"
-	"sync"
 	"twowls.org/patchwork/commons/extension"
 	"twowls.org/patchwork/commons/logging"
+	"twowls.org/patchwork/commons/utils/singleton"
 	"twowls.org/patchwork/server/bootstrap/config"
 	"twowls.org/patchwork/server/bootstrap/plugins"
 )
 
 const loggingPluginPrefix = "logging-"
 
-var (
-	root logging.Facade
-	once sync.Once
-)
+var rootLogger = singleton.NewLazy(func() logging.Facade {
+	var err error
+	if pluginName := config.Values().Logging.Plugin; pluginName != "" {
+		var info extension.PluginInfo
+		if info, err = plugins.Load(loggingPluginPrefix + strings.ToLower(pluginName)); err == nil {
+			if ext := info.DefaultExtension(); ext != nil {
+				if logger, ok := ext.(logging.Facade); ok {
+					options := extension.EmptyOptions().
+						PutConfig("level", config.Values().Logging.Level).
+						PutConfig("noColor", config.Values().Logging.NoColor)
 
-func Root() logging.Facade {
-	once.Do(func() {
-		var err error
-		if pluginName := config.Values().Logging.Plugin; pluginName != "" {
-			var info extension.PluginInfo
-			if info, err = plugins.Load(loggingPluginPrefix + strings.ToLower(pluginName)); err == nil {
-				if ext := info.DefaultExtension(); ext != nil {
-					if logger, ok := ext.(logging.Facade); ok {
-						options := extension.EmptyOptions().
-							PutConfig("level", config.Values().Logging.Level).
-							PutConfig("noColor", config.Values().Logging.NoColor)
-
-						if err = ext.Configure(options); err == nil {
-							logger.Info("Logging is provided via plugin: %q (%s)", pluginName, info.Description())
-							root = logger
-							return
-						}
+					if err = ext.Configure(options); err == nil {
+						logger.Info("Logging is provided via plugin: %q (%s)", pluginName, info.Description())
+						return logger
 					}
 				}
+			}
 
-				if err == nil {
-					err = errors.New("invalid extension")
-				}
+			if err == nil {
+				err = errors.New("invalid extension")
 			}
 		}
+	}
 
-		root = &fallbackLogger{}
-		if err != nil {
-			root.Error("Logging plugin failed to load: %v", err)
-		} else {
-			root.Warn("Logging plugin is not configured")
-		}
-	})
+	logger := &fallbackLogger{}
+	if err != nil {
+		logger.Error("Logging plugin failed to load: %v", err)
+	} else {
+		logger.Warn("Logging plugin is not configured")
+	}
 
-	return root
+	return logger
+})
+
+func Root() logging.Facade {
+	return rootLogger.Instance()
 }
 
 // Package-level logging facade (convenience shortcuts)
