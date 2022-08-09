@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/vrischmann/envconfig"
-	"sync"
+	"twowls.org/patchwork/commons/utils/singleton"
 )
 
 // Apiserver contains configuration of API server
@@ -46,18 +46,17 @@ type Root struct {
 	PluginsDir string
 }
 
-var (
-	once sync.Once
-	root *Root
-)
+var values = singleton.NewLazy(load)
+
+func load() *Root {
+	c := new(Root)
+	if err := envconfig.Init(c); err != nil {
+		// cannot use logging here since it might not be initialised yet
+		panic(fmt.Sprintf("unable to load configuration: %v", err))
+	}
+	return c
+}
 
 func Values() *Root {
-	once.Do(func() {
-		root = new(Root)
-		if err := envconfig.Init(root); err != nil {
-			// cannot use logging here since it is not initialized yet
-			panic(fmt.Sprintf("unable to load configuration: %v", err))
-		}
-	})
-	return root
+	return values.Instance()
 }
