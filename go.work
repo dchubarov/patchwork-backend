@@ -3,5 +3,6 @@ go 1.19
 use (
 	./commons
 	./server-bootstrap
+	./server-plugin-database-mongodb
 	./server-plugin-logging-zerolog
 )

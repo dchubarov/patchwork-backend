@@ -50,6 +50,13 @@ func (o *Options) StrConfig(key string) (string, bool) {
 	return "", false
 }
 
+func (o *Options) StrConfigDefault(key string, def string) string {
+	if s, ok := o.StrConfig(key); ok {
+		return s
+	}
+	return def
+}
+
 // BoolConfig returns a configuration value as bool
 func (o *Options) BoolConfig(key string) (bool, bool) {
 	if v, ok := o.AnyConfig(key); ok {
