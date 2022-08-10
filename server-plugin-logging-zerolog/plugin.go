@@ -2,11 +2,11 @@ package main
 
 import (
 	"twowls.org/patchwork/commons/extension"
-	"twowls.org/patchwork/commons/utils/singleton"
+	"twowls.org/patchwork/commons/singleton"
 )
 
 type zerologPluginInfo struct {
-	loggerExt singleton.Lazy[*zerologExtension]
+	loggerExt singleton.S[*zerologExtension]
 }
 
 func (p *zerologPluginInfo) Description() string {
@@ -19,7 +19,7 @@ func (p *zerologPluginInfo) DefaultExtension() extension.Extension {
 
 func PluginInfo() (extension.PluginInfo, error) {
 	return &zerologPluginInfo{
-		loggerExt: singleton.NewLazy(func() *zerologExtension {
+		loggerExt: singleton.Lazy(func() *zerologExtension {
 			return &zerologExtension{}
 		}),
 	}, nil

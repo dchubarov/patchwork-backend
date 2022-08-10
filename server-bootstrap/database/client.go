@@ -4,7 +4,7 @@ import (
 	"context"
 	"strings"
 	"time"
-	"twowls.org/patchwork/commons/utils/singleton"
+	"twowls.org/patchwork/commons/singleton"
 	"twowls.org/patchwork/server/bootstrap/config"
 	"twowls.org/patchwork/server/bootstrap/database/mongo"
 	"twowls.org/patchwork/server/bootstrap/logging"
@@ -21,7 +21,7 @@ type ClientMethods interface {
 
 var (
 	log    = logging.Context("database")
-	client = singleton.NewLazy(func() ClientMethods {
+	client = singleton.Lazy(func() ClientMethods {
 		var c ClientMethods
 		cfg := config.Values().Database
 		if strings.HasPrefix(cfg.Url, "mongodb://") {

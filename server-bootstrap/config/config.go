@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/vrischmann/envconfig"
-	"twowls.org/patchwork/commons/utils/singleton"
+	"twowls.org/patchwork/commons/singleton"
 )
 
 // Apiserver contains configuration of API server
@@ -46,7 +46,7 @@ type Root struct {
 	PluginsDir string
 }
 
-var values = singleton.NewLazy(load)
+var values = singleton.Lazy(load)
 
 func load() *Root {
 	c := new(Root)

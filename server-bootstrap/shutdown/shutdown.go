@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"golang.org/x/exp/slices"
 	"time"
-	"twowls.org/patchwork/commons/utils/singleton"
+	"twowls.org/patchwork/commons/singleton"
 	"twowls.org/patchwork/server/bootstrap/logging"
 )
 
@@ -26,11 +26,9 @@ type Shutdown struct {
 	InProgress bool
 }
 
-var (
-	s = singleton.NewLazy(func() *Shutdown {
-		return &Shutdown{}
-	})
-)
+var s = singleton.Lazy(func() *Shutdown {
+	return &Shutdown{}
+})
 
 func (s *Shutdown) Register(tag string, timeout time.Duration, handler hookFunc) {
 	if s.InProgress {

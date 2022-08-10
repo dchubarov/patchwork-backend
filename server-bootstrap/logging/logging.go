@@ -5,14 +5,14 @@ import (
 	"strings"
 	"twowls.org/patchwork/commons/extension"
 	"twowls.org/patchwork/commons/logging"
-	"twowls.org/patchwork/commons/utils/singleton"
+	"twowls.org/patchwork/commons/singleton"
 	"twowls.org/patchwork/server/bootstrap/config"
 	"twowls.org/patchwork/server/bootstrap/plugins"
 )
 
 const loggingPluginPrefix = "logging-"
 
-var rootLogger = singleton.NewLazy(func() logging.Facade {
+var rootLogger = singleton.Lazy(func() logging.Facade {
 	var err error
 	if pluginName := config.Values().Logging.Plugin; pluginName != "" {
 		var info extension.PluginInfo
