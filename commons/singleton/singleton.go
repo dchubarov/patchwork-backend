@@ -23,3 +23,10 @@ func (s *S[T]) Instance() T {
 func Lazy[T any](factory func() T) S[T] {
 	return S[T]{factory: factory}
 }
+
+// Eager creates new singleton with eager initialization
+func Eager[T any](factory func() T) S[T] {
+	s := Lazy(factory)
+	s.Instance()
+	return s
+}
