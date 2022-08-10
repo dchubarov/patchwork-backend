@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"twowls.org/patchwork/commons/logging"
+	"twowls.org/patchwork/server/bootstrap/apiserver/account"
 	"twowls.org/patchwork/server/bootstrap/apiserver/auth"
 	"twowls.org/patchwork/server/bootstrap/apiserver/health"
 	"twowls.org/patchwork/server/bootstrap/config"
@@ -32,6 +33,7 @@ func Router(log logging.Facade) http.Handler {
 	{
 		health.RegisterEndpoints(api.Group("/health"))
 		auth.RegisterEndpoints(api.Group("/auth"))
+		account.RegisterEndpoints(api.Group("/accounts"))
 	}
 
 	return router
