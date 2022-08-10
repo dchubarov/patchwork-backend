@@ -20,7 +20,7 @@ func (c *Client) Connect(ctx context.Context) {
 	}
 
 	if err := c.db.Client().Ping(ctx, readpref.Primary()); err != nil {
-		logging.Panic("[mongo] ping failed")
+		logging.Panic("[mongo] ping failed: %v", err)
 	}
 
 	// TODO remove
