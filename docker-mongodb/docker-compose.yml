@@ -1,0 +1,31 @@
+# Use root/example as user/password credentials
+version: '3.9'
+
+services:
+  mongo:
+    image: mongo:${MONGO_VERSION}
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+    ports:
+      - "${MONGO_PORT}:${MONGO_PORT}"
+    volumes:
+      - ./.env:/docker-entrypoint-initdb.d/initdb.env:ro
+      - ./mongo-initdb.sh:/docker-entrypoint-initdb.d/initdb.sh:ro
+      - ${MONGO_DATA_VOLUME_PATH}:/data/db/
+
+  mongo-express:
+    image: mongo-express:${MONGO_EXPRESS_VERSION}
+    restart: always
+    ports:
+      - "${MONGO_EXPRESS_PORT}:${MONGO_EXPRESS_PORT}"
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongo:${MONGO_PORT}/
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_ROOT_USERNAME}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_ROOT_PASSWORD}
+      ME_CONFIG_BASICAUTH_USERNAME: ${MONGO_EXPRESS_WEB_USERNAME}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_WEB_PASSWORD}
+    depends_on:
+      - mongo
