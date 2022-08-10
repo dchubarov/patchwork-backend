@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -13,7 +12,7 @@ import (
 
 func main() {
 	defer shutdown.All()
-	database.Client().Connect(context.Background())
+	database.MustConnect()
 	apiserver.Start()
 	awaitTermination()
 }

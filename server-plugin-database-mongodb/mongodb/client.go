@@ -3,9 +3,9 @@ package mongodb
 import (
 	"context"
 	"errors"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"twowls.org/patchwork/commons/extension"
 	"twowls.org/patchwork/commons/logging"
@@ -19,6 +19,7 @@ var (
 )
 
 type ClientExtension struct {
+	conn   connstring.ConnString
 	client *mongo.Client
 	db     *mongo.Database
 	log    logging.Facade
@@ -45,7 +46,7 @@ func (ext *ClientExtension) Configure(opts *extension.Options) error {
 	}
 
 	clientOpts := options.Client().ApplyURI(uri)
-	if username, ok := opts.StrConfig("username"); ok {
+	if username := opts.StrConfigDefault("username", ""); username != "" {
 		password, hasPassword := opts.StrConfig("password")
 		clientOpts.SetAuth(options.Credential{
 			Username:    username,
@@ -62,6 +63,7 @@ func (ext *ClientExtension) Configure(opts *extension.Options) error {
 
 	ext.db = client.Database(conn.Database, options.Database())
 	ext.client = client
+	ext.conn = conn
 	return nil
 }
 
@@ -69,16 +71,17 @@ func (ext *ClientExtension) Configure(opts *extension.Options) error {
 
 func (ext *ClientExtension) Connect(ctx context.Context) error {
 	if err := ext.client.Connect(ctx); err != nil {
-		ext.log.Error("Connection error: %v", err)
+		ext.log.Error("Connection error: v%v", err)
 		return ErrConnect
 	}
 
-	if err := ext.db.Client().Ping(ctx, readpref.Primary()); err != nil {
-		ext.log.Error("Unable to ping database server: %v", err)
+	var info bson.M
+	if err := ext.db.RunCommand(ctx, bson.D{{"buildInfo", 1}}).Decode(&info); err != nil {
+		ext.log.Error("Cannot get server info: %v", err)
 		return ErrConnect
 	}
 
-	ext.log.Info("Connected")
+	ext.log.Info("Connected to deployment: %v, version %v", ext.conn.Hosts, info["version"])
 	return nil
 }
 

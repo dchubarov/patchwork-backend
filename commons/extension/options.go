@@ -18,6 +18,10 @@ type Options struct {
 	cfg map[string]any
 }
 
+func BasicOptions(debug bool, log logging.Facade) *Options {
+	return &Options{Debug: debug, Log: log}
+}
+
 // EmptyOptions creates empty Options and returns its address
 func EmptyOptions() *Options {
 	return &Options{}
