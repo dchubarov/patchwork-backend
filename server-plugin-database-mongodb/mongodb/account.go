@@ -10,7 +10,7 @@ import (
 
 // database.repos.AccountRepository methods
 
-func (ext *ClientExtension) AccountFindUser(login string) domain.UserAccount {
+func (ext *ClientExtension) AccountFindUser(login string) (domain.UserAccount, bool) {
 	coll := ext.db.Collection("account.users", options.Collection())
 
 	var result domain.UserAccount
@@ -18,9 +18,8 @@ func (ext *ClientExtension) AccountFindUser(login string) domain.UserAccount {
 		if err != mongo.ErrNoDocuments {
 			ext.log.Error("AccountFindUser(): query failed: %v", err)
 		}
-		return domain.EmptyUserAccount
+		return domain.EmptyUserAccount, false
 	}
 
-	result.Exists = true
-	return result
+	return result, true
 }
