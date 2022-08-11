@@ -10,10 +10,12 @@ import (
 	"twowls.org/patchwork/commons/database/repos"
 )
 
+const userAccountCollectionName = "account.user"
+
 // database.repos.AccountRepository methods
 
 func (ext *ClientExtension) AccountFindUser(login string, lookupByEmail bool) (*repos.AccountUser, bool) {
-	coll := ext.db.Collection("account.users", options.Collection())
+	coll := ext.userAccountCollection()
 
 	var filter bson.D
 	if lookupByEmail {
@@ -76,5 +78,5 @@ func (ext *ClientExtension) AccountFindLoginUser(loginOrEmail string, passwordMa
 }
 
 func (ext *ClientExtension) userAccountCollection() *mongo.Collection {
-	return ext.db.Collection("account.users", options.Collection())
+	return ext.db.Collection(userAccountCollectionName, options.Collection())
 }

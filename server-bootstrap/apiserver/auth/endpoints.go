@@ -3,7 +3,6 @@ package auth
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-http-utils/headers"
-	"github.com/rs/xid"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strings"
@@ -19,11 +18,6 @@ type authenticatedSession struct {
 	User    *repos.AccountUser `json:"user"`
 }
 
-const (
-	sessionTTL             = 3600
-	maxGenerateSidAttempts = 10
-)
-
 func RegisterEndpoints(r gin.IRoutes) {
 	sessionStore := make(map[string]*authenticatedSession)
 
@@ -32,32 +26,20 @@ func RegisterEndpoints(r gin.IRoutes) {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		} else {
 			// TODO temp
-			for i := 0; i < maxGenerateSidAttempts; i++ {
-				sid := xid.New().String()
-				if _, found := sessionStore[sid]; !found {
-					timestamp := time.Now().Unix()
-					session := &authenticatedSession{
-						Expire:  timestamp + sessionTTL,
-						Refresh: timestamp,
-						User:    aac.User,
-						Host:    c.ClientIP(),
-					}
-
-					sessionStore[sid] = session
-
-					c.JSON(http.StatusOK, loginResponse{
-						Session: sid,
-						Expire:  session.Expire,
-						User:    session.User,
-					})
-
-					return
-				}
+			sessionStore[aac.Session.Sid] = &authenticatedSession{
+				Expire:  aac.Session.Expires.Unix(),
+				Refresh: 0,
+				User:    aac.User,
 			}
-			// TODO end temp
-		}
 
-		c.AbortWithStatus(http.StatusInternalServerError)
+			c.JSON(http.StatusOK, loginResponse{
+				Session: aac.Session.Sid,
+				Expire:  aac.Session.Expires.Unix(),
+				User:    aac.User,
+			})
+			// TODO end temp
+			return
+		}
 	})
 
 	r.GET("/join", func(c *gin.Context) {

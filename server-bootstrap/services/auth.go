@@ -17,11 +17,13 @@ const (
 
 type authServiceImpl struct {
 	accountRepo repos.AccountRepository
+	authRepo    repos.AuthRepository
 }
 
 var authService = singleton.Lazy(func() *authServiceImpl {
 	return &authServiceImpl{
 		database.Client().(repos.AccountRepository),
+		database.Client().(repos.AuthRepository),
 	}
 })
 
@@ -46,7 +48,11 @@ func (s *authServiceImpl) Login(authorization string) (*service.AuthContext, err
 				}
 
 				if user, found := s.accountRepo.AccountFindLoginUser(username, passwordMatcher); found {
-					return &service.AuthContext{User: user}, nil
+					if session, err := s.authRepo.AuthNewSession(user); err == nil {
+						return &service.AuthContext{Session: session, User: user}, nil
+					} else {
+						return nil, err
+					}
 				} else {
 					return nil, ErrAuthBadCredentials
 				}
