@@ -8,6 +8,7 @@ import (
 type AuthContext struct {
 	Session *repos.AuthSession // Session contains session info
 	User    *repos.AccountUser // User authenticated user
+	Token   string             // Token contains authentication token
 }
 
 // AuthService defines methods of authentication service

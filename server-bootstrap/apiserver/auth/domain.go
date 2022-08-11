@@ -5,7 +5,7 @@ import (
 )
 
 type loginResponse struct {
-	Session string             `json:"session"`
-	Expire  int64              `json:"expires"`
-	User    *repos.AccountUser `json:"user"`
+	Expire int64              `json:"expires"`
+	User   *repos.AccountUser `json:"user"`
+	Token  string             `json:"token"`
 }

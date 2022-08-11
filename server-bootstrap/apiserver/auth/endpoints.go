@@ -33,9 +33,9 @@ func RegisterEndpoints(r gin.IRoutes) {
 			}
 
 			c.JSON(http.StatusOK, loginResponse{
-				Session: aac.Session.Sid,
-				Expire:  aac.Session.Expires.Unix(),
-				User:    aac.User,
+				Expire: aac.Session.Expires.Unix(),
+				User:   aac.User,
+				Token:  aac.Token,
 			})
 			// TODO end temp
 			return
@@ -57,9 +57,8 @@ func RegisterEndpoints(r gin.IRoutes) {
 			} else {
 				session.Refresh = time.Now().Unix()
 				c.JSON(http.StatusOK, loginResponse{
-					Session: sid,
-					Expire:  session.Expire,
-					User:    session.User,
+					Expire: session.Expire,
+					User:   session.User,
 				})
 			}
 		} else {

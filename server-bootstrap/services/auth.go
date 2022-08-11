@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/base64"
 	"errors"
+	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
 	"strings"
 	"twowls.org/patchwork/commons/database/repos"
@@ -30,6 +31,7 @@ var authService = singleton.Lazy(func() *authServiceImpl {
 var (
 	ErrAuthInvalidData    = errors.New("invalid authorization data supplied")
 	ErrAuthBadCredentials = errors.New("invalid username or password")
+	ErrAuthCreateToken    = errors.New("token creation error")
 )
 
 // Auth returns authorization service instance
@@ -49,7 +51,18 @@ func (s *authServiceImpl) Login(authorization string) (*service.AuthContext, err
 
 				if user, found := s.accountRepo.AccountFindLoginUser(username, passwordMatcher); found {
 					if session, err := s.authRepo.AuthNewSession(user); err == nil {
-						return &service.AuthContext{Session: session, User: user}, nil
+						token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
+							ExpiresAt: &jwt.NumericDate{Time: session.Expires},
+							IssuedAt:  &jwt.NumericDate{Time: session.Created},
+							ID:        session.Sid,
+						})
+
+						// TODO testing only: must not use HMAC, must not use static key either
+						if signedToken, err := token.SignedString([]byte("Eij3Hah0uiy8ahgahnah7baghoo6Otho")); err == nil {
+							return &service.AuthContext{Session: session, User: user, Token: signedToken}, nil
+						} else {
+							return nil, ErrAuthCreateToken
+						}
 					} else {
 						return nil, err
 					}
