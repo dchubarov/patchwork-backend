@@ -10,22 +10,27 @@ import (
 	"twowls.org/patchwork/commons/database/repos"
 )
 
-// database.repos.AccountUserRepository methods
+// database.repos.AccountRepository methods
 
-func (ext *ClientExtension) AccountUserFind(loginOrEmail string) (*repos.AccountUser, bool) {
+func (ext *ClientExtension) AccountFindUser(login string, lookupByEmail bool) (*repos.AccountUser, bool) {
 	coll := ext.db.Collection("account.users", options.Collection())
 
-	filter := bson.D{
-		{"$or", bson.A{
-			bson.M{"loginOrEmail": loginOrEmail},
-			bson.M{"email": loginOrEmail}},
-		},
+	var filter bson.D
+	if lookupByEmail {
+		filter = bson.D{
+			{"$or", bson.A{
+				bson.M{"loginOrEmail": login},
+				bson.M{"email": login}},
+			},
+		}
+	} else {
+		filter = bson.D{{"login", login}}
 	}
 
 	var account repos.AccountUser
 	if err := coll.FindOne(context.TODO(), filter).Decode(&account); err != nil {
 		if err != mongo.ErrNoDocuments {
-			ext.log.Error("AccountUserFind(): query failed: %v", err)
+			ext.log.Error("AccountFindUser(): query failed: %v", err)
 		}
 		return nil, false
 	}

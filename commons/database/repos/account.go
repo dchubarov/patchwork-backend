@@ -4,9 +4,6 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// PasswordMatcher is function that returns true if a password supplied elsewhere matches hashedPassword
-type PasswordMatcher func(hashedPassword []byte) bool
-
 const (
 	AccountUserInternal   = "internal"   // AccountUserInternal indicates an internal user
 	AccountUserPrivileged = "privileged" // AccountUserPrivileged indicates a privileged user (administrator)
@@ -36,11 +33,14 @@ func (a *AccountUser) IsSuspended() bool {
 	return slices.Contains(a.Flags, AccountUserSuspended)
 }
 
-// AccountUserRepository provides methods allowing to access and manage account in database
-type AccountUserRepository interface {
-	// AccountUserFind finds user account by login or email
-	AccountUserFind(loginOrEmail string) (*AccountUser, bool)
+// PasswordMatcher is function that returns true if a password supplied elsewhere matches hashedPassword
+type PasswordMatcher func(hashedPassword []byte) bool
 
-	// AccountFindLoginUser find AccountUser by login
+// AccountRepository provides methods allowing to access and manage account in database
+type AccountRepository interface {
+	// AccountFindUser finds user account by login or email
+	AccountFindUser(login string, lookupByEmail bool) (*AccountUser, bool)
+
+	// AccountFindLoginUser find AccountUser by login or E-mail, additionally check if user can be logged in, including password check
 	AccountFindLoginUser(loginOrEmail string, comparePasswordFn PasswordMatcher) (*AccountUser, bool)
 }

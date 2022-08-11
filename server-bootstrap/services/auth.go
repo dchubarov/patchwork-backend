@@ -16,12 +16,12 @@ const (
 )
 
 type authServiceImpl struct {
-	accountRepo repos.AccountUserRepository
+	accountRepo repos.AccountRepository
 }
 
 var authService = singleton.Lazy(func() *authServiceImpl {
 	return &authServiceImpl{
-		database.Client().(repos.AccountUserRepository),
+		database.Client().(repos.AccountRepository),
 	}
 })
 
