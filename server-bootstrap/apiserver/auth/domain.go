@@ -1,23 +1,11 @@
 package auth
 
-type userRole string
-
-type userMembership struct {
-	Team       string   `json:"team"`
-	CommonName string   `json:"cn,omitempty"`
-	Role       userRole `json:"role"`
-}
-
-type userEntry struct {
-	Login        string           `json:"login"`
-	Email        string           `json:"email"`
-	CommonName   string           `json:"cn,omitempty"`
-	PasswordHash string           `json:"-"`
-	MemberOf     []userMembership `json:"memberOf"`
-}
+import (
+	"twowls.org/patchwork/commons/database/repos"
+)
 
 type loginResponse struct {
-	Session string     `json:"session"`
-	Expire  int64      `json:"expires"`
-	User    *userEntry `json:"user"`
+	Session string             `json:"session"`
+	Expire  int64              `json:"expires"`
+	User    *repos.AccountUser `json:"user"`
 }

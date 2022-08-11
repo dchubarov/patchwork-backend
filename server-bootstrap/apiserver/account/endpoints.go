@@ -9,8 +9,8 @@ import (
 
 func RegisterEndpoints(r gin.IRoutes) {
 	r.GET("users/:login", func(c *gin.Context) {
-		accountRepo := database.Client().(repos.AccountRepository)
-		if account, found := accountRepo.AccountFindUser(c.Param("login")); found {
+		accountRepo := database.Client().(repos.AccountUserRepository)
+		if account, found := accountRepo.AccountUserFind(c.Param("login")); found {
 			c.JSON(http.StatusOK, account)
 		} else {
 			c.Status(http.StatusNotFound)
