@@ -41,8 +41,8 @@ func Auth() service.AuthService {
 
 // service.AuthService methods
 
-func (s *authServiceImpl) Login(authorization string) (*service.AuthContext, error) {
-	if strings.HasPrefix(authorization, basicAuthScheme) {
+func (s *authServiceImpl) LoginWithCredentials(authorization string, authorizationType int) (*service.AuthContext, error) {
+	if authorizationType == service.AuthServiceHeaderCredentials && strings.HasPrefix(authorization, basicAuthScheme) {
 		if buf, err := base64.StdEncoding.DecodeString(authorization[len(basicAuthScheme):]); err == nil {
 			if username, password, ok := strings.Cut(string(buf), ":"); ok {
 				passwordMatcher := func(hashedPassword []byte) bool {

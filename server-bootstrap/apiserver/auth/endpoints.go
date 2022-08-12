@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 	"twowls.org/patchwork/commons/database/repos"
+	"twowls.org/patchwork/commons/service"
 	"twowls.org/patchwork/server/bootstrap/services"
 )
 
@@ -22,7 +23,7 @@ func RegisterEndpoints(r gin.IRoutes) {
 	sessionStore := make(map[string]*authenticatedSession)
 
 	r.GET("/login", func(c *gin.Context) {
-		if aac, err := services.Auth().Login(c.GetHeader(headers.Authorization)); err != nil {
+		if aac, err := services.Auth().LoginWithCredentials(c.GetHeader(headers.Authorization), service.AuthServiceHeaderCredentials); err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		} else {
 			// TODO temp

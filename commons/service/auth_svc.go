@@ -11,7 +11,14 @@ type AuthContext struct {
 	Token   string             // Token contains authentication token
 }
 
+const (
+	AuthServiceHeaderCredentials = iota // AuthServiceHeaderCredentials authorization data came from 'Authorization' header
+	//AuthServiceFormCredential
+)
+
 // AuthService defines methods of authentication service
 type AuthService interface {
-	Login(authorization string) (*AuthContext, error)
+
+	// LoginWithCredentials login user with given credentials
+	LoginWithCredentials(authorization string, authorizationType int) (*AuthContext, error)
 }
