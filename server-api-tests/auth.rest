@@ -1,0 +1,13 @@
+
+### Login with sample credentials: dime@twowls.org:xxx
+GET {{baseurl}}/auth/login
+Authorization: Basic ZGltZUB0d293bHMub3JnOnh4eA==
+
+### Login with existing token
+GET {{baseurl}}/auth/login
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NjAzNDU2MzgsImlhdCI6MTY2MDMxNjgzOCwianRpIjoiNjJmNjZjYTYxZGQ2NjBmYTcyZDg4MGM1In0.9XZczE6o9ag7larBa-W6wNxv7nUe7Fz-rnYyoh6SlGw
+
+### Attempt to login with broken token
+GET {{baseurl}}/auth/login
+Authorization: Bearer invalidtokendata
+

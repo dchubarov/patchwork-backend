@@ -1,0 +1,4 @@
+
+### Get user account
+GET {{baseurl}}/accounts/users/dime
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2NjAzNDU2MzgsImlhdCI6MTY2MDMxNjgzOCwianRpIjoiNjJmNjZjYTYxZGQ2NjBmYTcyZDg4MGM1In0.9XZczE6o9ag7larBa-W6wNxv7nUe7Fz-rnYyoh6SlGw
