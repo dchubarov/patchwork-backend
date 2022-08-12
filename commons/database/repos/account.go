@@ -2,6 +2,7 @@ package repos
 
 import (
 	"golang.org/x/exp/slices"
+	"strings"
 )
 
 const (
@@ -18,19 +19,24 @@ type AccountUser struct {
 	Flags []string `json:"flags"` // Flags contains user account flags
 }
 
+// Is returns true if specified login matches current user name
+func (u *AccountUser) Is(login string) bool {
+	return u != nil && strings.Compare(u.Login, login) == 0
+}
+
 // IsInternal returns true if AccountUserInternal flag is set
-func (a *AccountUser) IsInternal() bool {
-	return slices.Contains(a.Flags, AccountUserInternal)
+func (u *AccountUser) IsInternal() bool {
+	return slices.Contains(u.Flags, AccountUserInternal)
 }
 
 // IsPrivileged returns true if AccountUserPrivileged flag is set
-func (a *AccountUser) IsPrivileged() bool {
-	return slices.Contains(a.Flags, AccountUserPrivileged)
+func (u *AccountUser) IsPrivileged() bool {
+	return slices.Contains(u.Flags, AccountUserPrivileged)
 }
 
 // IsSuspended returns true if AccountUserSuspended flag is set
-func (a *AccountUser) IsSuspended() bool {
-	return slices.Contains(a.Flags, AccountUserSuspended)
+func (u *AccountUser) IsSuspended() bool {
+	return slices.Contains(u.Flags, AccountUserSuspended)
 }
 
 // PasswordMatcher is function that returns true if a password supplied elsewhere matches hashedPassword

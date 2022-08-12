@@ -25,16 +25,20 @@ func (ext *ClientExtension) AuthFindSession(sid string) (*repos.AuthSession, err
 	if oid, err := primitive.ObjectIDFromHex(sid); err == nil {
 		filter := bson.D{
 			{"_id", oid},
-			{"expire_utc", bson.M{"$lt": time.Now().UTC()}},
+			{"expires", bson.M{"$gt": time.Now().UTC()}},
 		}
 
 		var sessionBson bson.M
-		if err := ext.sessionCollection().FindOne(context.TODO(), filter).Decode(&sessionBson); err == nil {
-			return &repos.AuthSession{
-				Created: sessionBson["create_utc"].(time.Time),
-				Expires: sessionBson["expire_utc"].(time.Time),
-				Sid:     sid,
-			}, nil
+		sessionResult := ext.sessionCollection().FindOne(context.TODO(), filter)
+		if err := sessionResult.Decode(&sessionBson); err == nil {
+			var session repos.AuthSession
+			if err := sessionResult.Decode(&session); err == nil {
+				session.Sid = sid
+				return &session, nil
+			} else {
+				ext.log.Error("AuthFindSession() could not decode session result: %v", err)
+				return nil, ErrAuthSessionNotFound
+			}
 		} else {
 			if !errors.Is(err, mongo.ErrNoDocuments) {
 				ext.log.Error("AuthFindSession() query failed: %v", err)

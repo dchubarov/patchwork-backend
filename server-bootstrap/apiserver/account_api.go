@@ -9,11 +9,21 @@ import (
 
 func registerEndpointsAccount(r gin.IRoutes) {
 	r.GET("users/:login", func(c *gin.Context) {
-		accountRepo := database.Client().(repos.AccountRepository)
-		if account, found := accountRepo.AccountFindUser(c.Param("login"), false); found {
-			c.JSON(http.StatusOK, account)
+		login := c.Param("login")
+		aac := retrieveAuth(c)
+		if aac != nil {
+			if aac != nil && (aac.User.IsPrivileged() || aac.User.Is(login)) {
+				accountRepo := database.Client().(repos.AccountRepository)
+				if account, found := accountRepo.AccountFindUser(login, false); found {
+					c.JSON(http.StatusOK, account)
+				} else {
+					c.Status(http.StatusNotFound)
+				}
+			} else {
+				c.AbortWithStatus(http.StatusForbidden)
+			}
 		} else {
-			c.Status(http.StatusNotFound)
+			c.AbortWithStatus(http.StatusUnauthorized)
 		}
 	})
 }

@@ -4,11 +4,16 @@ import (
 	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/go-http-utils/headers"
 	"net/http"
+	"os"
 	"strconv"
+	"strings"
 	"time"
 	"twowls.org/patchwork/commons/logging"
+	"twowls.org/patchwork/commons/service"
 	"twowls.org/patchwork/server/bootstrap/config"
+	"twowls.org/patchwork/server/bootstrap/services"
 )
 
 func Router(log logging.Facade) http.Handler {
@@ -19,6 +24,7 @@ func Router(log logging.Facade) http.Handler {
 	router := gin.New()
 	router.Use(gin.Recovery())
 	router.Use(loggingMiddleware(log))
+	router.Use(tokenInterceptorMiddleware())
 	router.Use(cors.New(cors.Config{
 		// TODO development only
 		AllowOrigins:     []string{"http://localhost:3000"},
@@ -38,6 +44,35 @@ func Router(log logging.Facade) http.Handler {
 }
 
 // private
+
+var authContextKey = "$$aac." + strconv.Itoa(os.Getpid())
+
+func errorResponse(err error) gin.H {
+	return gin.H{"error": err.Error()}
+}
+
+func retrieveAuth(c *gin.Context) *service.AuthContext {
+	if raw, found := c.Get(authContextKey); found {
+		if auth, ok := raw.(*service.AuthContext); ok {
+			return auth
+		}
+	}
+	return nil
+}
+
+func tokenInterceptorMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		authHeader := c.GetHeader(headers.Authorization)
+		if strings.HasPrefix(authHeader, services.AuthSchemeBearer) {
+			auth, err := services.Auth().LoginWithCredentials(authHeader, service.AuthServiceHeaderCredentials)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, errorResponse(err))
+			} else {
+				c.Set(authContextKey, auth)
+			}
+		}
+	}
+}
 
 func loggingMiddleware(log logging.Facade) gin.HandlerFunc {
 	return func(c *gin.Context) {
