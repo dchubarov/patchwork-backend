@@ -13,7 +13,13 @@ import (
 )
 
 const (
-	basicAuthScheme = "Basic " // note trailing space
+	authSchemeBasic = "Basic " // note trailing space
+)
+
+var (
+	ErrAuthInvalidData    = errors.New("invalid authorization data supplied")
+	ErrAuthBadCredentials = errors.New("invalid username or password")
+	ErrAuthCreateToken    = errors.New("token creation error")
 )
 
 type authServiceImpl struct {
@@ -28,25 +34,24 @@ var authService = singleton.Lazy(func() *authServiceImpl {
 	}
 })
 
-var (
-	ErrAuthInvalidData    = errors.New("invalid authorization data supplied")
-	ErrAuthBadCredentials = errors.New("invalid username or password")
-	ErrAuthCreateToken    = errors.New("token creation error")
-)
-
 // Auth returns authorization service instance
 func Auth() service.AuthService {
 	return authService.Instance()
 }
 
-// service.AuthService methods
+// service.AuthService implementation
+
+func (s *authServiceImpl) LoginInternal(bool) (*service.AuthContext, error) {
+	// TODO not implemented
+	return nil, nil
+}
 
 func (s *authServiceImpl) LoginWithCredentials(authorization string, authorizationType int) (*service.AuthContext, error) {
-	if authorizationType == service.AuthServiceHeaderCredentials && strings.HasPrefix(authorization, basicAuthScheme) {
-		if buf, err := base64.StdEncoding.DecodeString(authorization[len(basicAuthScheme):]); err == nil {
+	if authorizationType == service.AuthServiceHeaderCredentials && strings.HasPrefix(authorization, authSchemeBasic) {
+		if buf, err := base64.StdEncoding.DecodeString(authorization[len(authSchemeBasic):]); err == nil {
 			if username, password, ok := strings.Cut(string(buf), ":"); ok {
 				passwordMatcher := func(hashedPassword []byte) bool {
-					return bcrypt.CompareHashAndPassword(hashedPassword, []byte(password)) == nil
+					return passwordMatchesHash(hashedPassword, password)
 				}
 
 				if user, found := s.accountRepo.AccountFindLoginUser(username, passwordMatcher); found {
@@ -74,4 +79,10 @@ func (s *authServiceImpl) LoginWithCredentials(authorization string, authorizati
 	}
 
 	return nil, ErrAuthInvalidData
+}
+
+// private
+
+func passwordMatchesHash(hash []byte, password string) bool {
+	return bcrypt.CompareHashAndPassword(hash, []byte(password)) == nil
 }

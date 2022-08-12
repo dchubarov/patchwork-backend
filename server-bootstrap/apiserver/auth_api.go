@@ -1,4 +1,4 @@
-package auth
+package apiserver
 
 import (
 	"github.com/gin-gonic/gin"
@@ -12,6 +12,12 @@ import (
 	"twowls.org/patchwork/server/bootstrap/services"
 )
 
+type loginResponse struct {
+	Expire int64              `json:"expires"`
+	User   *repos.AccountUser `json:"user"`
+	Token  string             `json:"token"`
+}
+
 type authenticatedSession struct {
 	Expire  int64              `json:"expires"`
 	Refresh int64              `json:"refresh"`
@@ -19,7 +25,7 @@ type authenticatedSession struct {
 	User    *repos.AccountUser `json:"user"`
 }
 
-func RegisterEndpoints(r gin.IRoutes) {
+func registerEndpointsAuth(r gin.IRoutes) {
 	sessionStore := make(map[string]*authenticatedSession)
 
 	r.GET("/login", func(c *gin.Context) {

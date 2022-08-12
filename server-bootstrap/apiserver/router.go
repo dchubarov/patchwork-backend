@@ -6,10 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+	"time"
 	"twowls.org/patchwork/commons/logging"
-	"twowls.org/patchwork/server/bootstrap/apiserver/account"
-	"twowls.org/patchwork/server/bootstrap/apiserver/auth"
-	"twowls.org/patchwork/server/bootstrap/apiserver/health"
 	"twowls.org/patchwork/server/bootstrap/config"
 )
 
@@ -31,27 +29,33 @@ func Router(log logging.Facade) http.Handler {
 
 	api := router.Group("/api")
 	{
-		health.RegisterEndpoints(api.Group("/health"))
-		auth.RegisterEndpoints(api.Group("/auth"))
-		account.RegisterEndpoints(api.Group("/accounts"))
+		registerEndpointsAccount(api.Group("/accounts"))
+		registerEndpointsAuth(api.Group("/auth"))
+		registerEndpointsHealth(api.Group("/health"))
 	}
 
 	return router
 }
 
+// private
+
 func loggingMiddleware(log logging.Facade) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		start := time.Now()
 		c.Next()
 
+		duration := time.Since(start)
 		fields := map[string]any{
-			"method": c.Request.Method,
-			"path":   c.Request.URL.Path,
-			"from":   c.ClientIP(),
-			"status": c.Writer.Status(),
+			"method":   c.Request.Method,
+			"path":     c.Request.URL.Path,
+			"from":     c.ClientIP(),
+			"status":   c.Writer.Status(),
+			"duration": duration,
 		}
 
-		log.InfoFields(fields, "%s %-7s %-30s",
-			coloredHttpStatus(fields["status"].(int)), fields["method"], fields["path"])
+		log.InfoFields(fields, "%s %-7s %-30s (%s)",
+			coloredHttpStatus(fields["status"].(int)), fields["method"], fields["path"],
+			duration.Round(time.Microsecond).String())
 	}
 }
 

@@ -1,4 +1,4 @@
-package account
+package apiserver
 
 import (
 	"github.com/gin-gonic/gin"
@@ -7,7 +7,7 @@ import (
 	"twowls.org/patchwork/server/bootstrap/database"
 )
 
-func RegisterEndpoints(r gin.IRoutes) {
+func registerEndpointsAccount(r gin.IRoutes) {
 	r.GET("users/:login", func(c *gin.Context) {
 		accountRepo := database.Client().(repos.AccountRepository)
 		if account, found := accountRepo.AccountFindUser(c.Param("login"), false); found {

@@ -18,7 +18,8 @@ const (
 
 // AuthService defines methods of authentication service
 type AuthService interface {
-
+	// LoginInternal creates a session for internal user
+	LoginInternal(privileged bool) (*AuthContext, error)
 	// LoginWithCredentials login user with given credentials
 	LoginWithCredentials(authorization string, authorizationType int) (*AuthContext, error)
 }
