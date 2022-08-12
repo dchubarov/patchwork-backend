@@ -1,4 +1,4 @@
-package repos
+package service
 
 import (
 	"golang.org/x/exp/slices"
@@ -19,7 +19,7 @@ type AccountUser struct {
 	Flags []string `json:"flags"` // Flags contains user account flags
 }
 
-// Is returns true if specified login matches current user name
+// Is returns true if specified login matches current user
 func (u *AccountUser) Is(login string) bool {
 	return u != nil && strings.Compare(u.Login, login) == 0
 }
@@ -39,14 +39,6 @@ func (u *AccountUser) IsSuspended() bool {
 	return slices.Contains(u.Flags, AccountUserSuspended)
 }
 
-// PasswordMatcher is function that returns true if a password supplied elsewhere matches hashedPassword
-type PasswordMatcher func(hashedPassword []byte) bool
-
-// AccountRepository provides methods allowing to access and manage account in database
-type AccountRepository interface {
-	// AccountFindUser finds user account by login or email
-	AccountFindUser(login string, lookupByEmail bool) (*AccountUser, bool)
-
-	// AccountFindLoginUser find AccountUser by login or E-mail, additionally check if user can be logged in, including password check
-	AccountFindLoginUser(loginOrEmail string, comparePasswordFn PasswordMatcher) (*AccountUser, bool)
+type AccountService interface {
+	FindUser(loginOrEmail string, lookupByEmail bool, aac *AuthContext) (*AccountUser, error)
 }

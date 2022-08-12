@@ -5,27 +5,17 @@ import (
 	"github.com/go-http-utils/headers"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
-	"twowls.org/patchwork/commons/database/repos"
 	"twowls.org/patchwork/commons/service"
 	"twowls.org/patchwork/server/bootstrap/services"
 )
 
 type loginResponse struct {
-	Expire int64              `json:"expires"`
-	User   *repos.AccountUser `json:"user"`
-	Token  string             `json:"token"`
-}
-
-type authenticatedSession struct {
-	Expire  int64              `json:"expires"`
-	Refresh int64              `json:"refresh"`
-	Host    string             `json:"host"`
-	User    *repos.AccountUser `json:"user"`
+	Token  string               `json:"token"`
+	Expire int64                `json:"expires"`
+	User   *service.AccountUser `json:"user"`
 }
 
 func registerEndpointsAuth(r gin.IRoutes) {
-	sessionStore := make(map[string]*authenticatedSession)
-
 	r.GET("/login", func(c *gin.Context) {
 		var aac *service.AuthContext
 		if aac = retrieveAuth(c); aac == nil {
@@ -34,32 +24,26 @@ func registerEndpointsAuth(r gin.IRoutes) {
 				service.AuthServiceHeaderCredentials)
 
 			if err != nil {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, errorResponse(err))
+				handleStandardError(err, c)
+			} else {
+				aac = loginAac
 			}
-
-			aac = loginAac
 		}
 
-		// TODO temp
-		sessionStore[aac.Session.Sid] = &authenticatedSession{
-			Expire:  aac.Session.Expires.Unix(),
-			Refresh: 0,
-			User:    aac.User,
+		if aac != nil {
+			c.JSON(http.StatusOK, loginResponse{
+				Expire: aac.Session.Expires.Unix(),
+				User:   aac.User,
+				Token:  aac.Token,
+			})
 		}
-
-		c.JSON(http.StatusOK, loginResponse{
-			Expire: aac.Session.Expires.Unix(),
-			User:   aac.User,
-			Token:  aac.Token,
-		})
-		// TODO end temp
 	})
 
 	r.GET("/logout", func(c *gin.Context) {
-		if aac := retrieveAuth(c); aac != nil {
-			// TODO delete session
+		if err := services.Auth().Logout(retrieveAuth(c)); err != nil {
+			handleStandardError(err, c)
 		} else {
-			c.AbortWithStatus(http.StatusUnauthorized)
+			c.Status(http.StatusNoContent)
 		}
 	})
 
@@ -71,10 +55,5 @@ func registerEndpointsAuth(r gin.IRoutes) {
 		} else {
 			c.String(http.StatusOK, string(hash))
 		}
-	})
-
-	// TODO to be removed
-	r.GET("/dump/session", func(c *gin.Context) {
-		c.JSON(http.StatusOK, sessionStore)
 	})
 }

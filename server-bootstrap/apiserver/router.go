@@ -47,8 +47,19 @@ func Router(log logging.Facade) http.Handler {
 
 var authContextKey = "$$aac." + strconv.Itoa(os.Getpid())
 
-func errorResponse(err error) gin.H {
-	return gin.H{"error": err.Error()}
+func handleStandardError(err error, c *gin.Context) {
+	errStd, ok := err.(*service.E)
+	if !ok {
+		log.Warn("Service returned error which will not be forwarded to user: %v", err)
+		errStd = service.ErrServiceUnspecific
+	}
+
+	httpCode := errStd.HttpCode
+	if httpCode < 200 || httpCode >= 599 {
+		httpCode = http.StatusInternalServerError
+	}
+
+	c.AbortWithStatusJSON(httpCode, errStd)
 }
 
 func retrieveAuth(c *gin.Context) *service.AuthContext {
@@ -66,7 +77,7 @@ func tokenInterceptorMiddleware() gin.HandlerFunc {
 		if strings.HasPrefix(authHeader, services.AuthSchemeBearer) {
 			auth, err := services.Auth().LoginWithCredentials(authHeader, service.AuthServiceHeaderCredentials)
 			if err != nil {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, errorResponse(err))
+				handleStandardError(err, c)
 			} else {
 				c.Set(authContextKey, auth)
 			}

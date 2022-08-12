@@ -8,13 +8,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"twowls.org/patchwork/commons/database/repos"
+	"twowls.org/patchwork/commons/service"
 )
 
 const userAccountCollectionName = "account.user"
 
 // database.repos.AccountRepository methods
 
-func (ext *ClientExtension) AccountFindUser(login string, lookupByEmail bool) (*repos.AccountUser, bool) {
+func (ext *ClientExtension) AccountFindUser(login string, lookupByEmail bool) *service.AccountUser {
 	coll := ext.userAccountCollection()
 
 	var filter bson.D
@@ -29,18 +30,18 @@ func (ext *ClientExtension) AccountFindUser(login string, lookupByEmail bool) (*
 		filter = bson.D{{"login", login}}
 	}
 
-	var account repos.AccountUser
+	var account service.AccountUser
 	if err := coll.FindOne(context.TODO(), filter).Decode(&account); err != nil {
 		if err != mongo.ErrNoDocuments {
 			ext.log.Error("AccountFindUser(): query failed: %v", err)
 		}
-		return nil, false
+		return nil
 	}
 
-	return &account, true
+	return &account
 }
 
-func (ext *ClientExtension) AccountFindLoginUser(loginOrEmail string, passwordMatcher repos.PasswordMatcher) (*repos.AccountUser, bool) {
+func (ext *ClientExtension) AccountFindLoginUser(loginOrEmail string, passwordMatcher repos.PasswordMatcher) (*service.AccountUser, bool) {
 	coll := ext.userAccountCollection()
 
 	filter := bson.D{
@@ -50,8 +51,8 @@ func (ext *ClientExtension) AccountFindLoginUser(loginOrEmail string, passwordMa
 		},
 		{"flags", bson.M{
 			"$nin": bson.A{
-				repos.AccountUserInternal,  // excluding system accounts
-				repos.AccountUserSuspended, // excluding suspended accounts
+				service.AccountUserInternal,  // excluding system accounts
+				service.AccountUserSuspended, // excluding suspended accounts
 			},
 		}},
 	}
@@ -59,14 +60,12 @@ func (ext *ClientExtension) AccountFindLoginUser(loginOrEmail string, passwordMa
 	var rawDoc bson.M
 	rawResult := coll.FindOne(context.TODO(), filter)
 	if err := rawResult.Decode(&rawDoc); err == nil {
-		if pwd, ok := rawDoc["pwd"].(primitive.Binary); ok && passwordMatcher(pwd.Data) {
-			var account repos.AccountUser
-			if err := rawResult.Decode(&account); err != nil {
+		if pwd, ok := rawDoc["pwd"].(primitive.Binary); ok {
+			var account service.AccountUser
+			if err = rawResult.Decode(&account); err != nil {
 				ext.log.Error("AccountFindLoginUser(): failed to decode AccountUser data: %v", err)
 			}
-			return &account, true
-		} else {
-			ext.log.Warn("AccountFindLoginUser(): passwords do not match")
+			return &account, passwordMatcher != nil && passwordMatcher(pwd.Data)
 		}
 	} else {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
@@ -76,6 +75,8 @@ func (ext *ClientExtension) AccountFindLoginUser(loginOrEmail string, passwordMa
 
 	return nil, false
 }
+
+// private
 
 func (ext *ClientExtension) userAccountCollection() *mongo.Collection {
 	coll := ext.db.Collection(userAccountCollectionName)
@@ -88,9 +89,6 @@ func (ext *ClientExtension) userAccountCollection() *mongo.Collection {
 			Options: options.Index().SetUnique(true),
 		},
 	}
-
-	// existing indices are not recreated
-	// https://www.mongodb.com/docs/manual/reference/method/db.collection.createIndex/#recreating-an-existing-index
 
 	if _, err := coll.Indexes().CreateMany(context.TODO(), indices); err != nil {
 		ext.log.Error("userAccountCollection() could not create indices on %q: %v",
