@@ -78,5 +78,24 @@ func (ext *ClientExtension) AccountFindLoginUser(loginOrEmail string, passwordMa
 }
 
 func (ext *ClientExtension) userAccountCollection() *mongo.Collection {
-	return ext.db.Collection(userAccountCollectionName, options.Collection())
+	coll := ext.db.Collection(userAccountCollectionName)
+	indices := []mongo.IndexModel{
+		{
+			Keys:    bson.M{"login": 1},
+			Options: options.Index().SetUnique(true),
+		}, {
+			Keys:    bson.M{"email": 1},
+			Options: options.Index().SetUnique(true),
+		},
+	}
+
+	// existing indices are not recreated
+	// https://www.mongodb.com/docs/manual/reference/method/db.collection.createIndex/#recreating-an-existing-index
+
+	if _, err := coll.Indexes().CreateMany(context.TODO(), indices); err != nil {
+		ext.log.Error("userAccountCollection() could not create indices on %q: %v",
+			userAccountCollectionName, err)
+	}
+
+	return coll
 }

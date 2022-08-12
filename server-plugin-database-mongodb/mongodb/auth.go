@@ -61,8 +61,8 @@ func (ext *ClientExtension) AuthNewSession(user *repos.AccountUser) (*repos.Auth
 	sessionBson := bson.D{
 		{"user", user.Login},
 		{"privileged", user.IsPrivileged()},
-		{"create_utc", session.Created},
-		{"expire_utc", session.Expires},
+		{"created", session.Created},
+		{"expires", session.Expires},
 	}
 
 	if result, err := ext.sessionCollection().InsertOne(context.TODO(), sessionBson); err != nil || result.InsertedID == nil {
@@ -75,5 +75,12 @@ func (ext *ClientExtension) AuthNewSession(user *repos.AccountUser) (*repos.Auth
 }
 
 func (ext *ClientExtension) sessionCollection() *mongo.Collection {
-	return ext.db.Collection(sessionCollectionName)
+	coll := ext.db.Collection(sessionCollectionName)
+	index := mongo.IndexModel{Keys: bson.M{"expires": 1}}
+
+	if _, err := coll.Indexes().CreateOne(context.TODO(), index); err != nil {
+		ext.log.Error("sessionCollection() could not create index on %q: %v", sessionCollectionName, err)
+	}
+
+	return coll
 }
