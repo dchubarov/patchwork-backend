@@ -1,18 +1,19 @@
 package service
 
 import (
+	"context"
 	"golang.org/x/exp/slices"
 	"strings"
 )
 
 const (
-	AccountUserInternal   = "internal"   // AccountUserInternal indicates an internal user
-	AccountUserPrivileged = "privileged" // AccountUserPrivileged indicates a privileged user (administrator)
-	AccountUserSuspended  = "suspended"  // AccountUserSuspended indicates an internal user
+	UserAccountInternal   = "internal"   // UserAccountInternal indicates an internal user
+	UserAccountPrivileged = "privileged" // UserAccountPrivileged indicates a privileged user (administrator)
+	UserAccountSuspended  = "suspended"  // UserAccountSuspended indicates an internal user
 )
 
-// AccountUser contains user account data
-type AccountUser struct {
+// UserAccount contains user account data
+type UserAccount struct {
 	Login string   `json:"login"` // Login user login name
 	Email string   `json:"email"` // Email email address
 	Cn    string   `json:"cn"`    // Cn common name
@@ -20,25 +21,25 @@ type AccountUser struct {
 }
 
 // Is returns true if specified login matches current user
-func (u *AccountUser) Is(login string) bool {
+func (u *UserAccount) Is(login string) bool {
 	return u != nil && strings.Compare(u.Login, login) == 0
 }
 
-// IsInternal returns true if AccountUserInternal flag is set
-func (u *AccountUser) IsInternal() bool {
-	return slices.Contains(u.Flags, AccountUserInternal)
+// IsInternal returns true if UserAccountInternal flag is set
+func (u *UserAccount) IsInternal() bool {
+	return slices.Contains(u.Flags, UserAccountInternal)
 }
 
-// IsPrivileged returns true if AccountUserPrivileged flag is set
-func (u *AccountUser) IsPrivileged() bool {
-	return slices.Contains(u.Flags, AccountUserPrivileged)
+// IsPrivileged returns true if UserAccountPrivileged flag is set
+func (u *UserAccount) IsPrivileged() bool {
+	return slices.Contains(u.Flags, UserAccountPrivileged)
 }
 
-// IsSuspended returns true if AccountUserSuspended flag is set
-func (u *AccountUser) IsSuspended() bool {
-	return slices.Contains(u.Flags, AccountUserSuspended)
+// IsSuspended returns true if UserAccountSuspended flag is set
+func (u *UserAccount) IsSuspended() bool {
+	return slices.Contains(u.Flags, UserAccountSuspended)
 }
 
 type AccountService interface {
-	FindUser(loginOrEmail string, lookupByEmail bool, aac *AuthContext) (*AccountUser, error)
+	FindUser(ctx context.Context, loginOrEmail string, lookupByEmail bool) (*UserAccount, error)
 }

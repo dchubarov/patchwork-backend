@@ -7,11 +7,16 @@ import (
 )
 
 func registerEndpointsAccount(r gin.IRoutes) {
-	r.GET("users/:login", func(c *gin.Context) {
-		if user, err := services.Account().FindUser(c.Param("login"), false, retrieveAuth(c)); err != nil {
-			handleStandardError(err, c)
-		} else {
-			c.JSON(http.StatusOK, user)
-		}
-	})
+	r.GET("user/:login", userAccountEndpoint)
+	r.GET("users/:login", userAccountEndpoint)
+}
+
+// endpoints
+
+func userAccountEndpoint(c *gin.Context) {
+	if user, err := services.Account().FindUser(c, c.Param("login"), false); err != nil {
+		handleStandardError(err, c)
+	} else {
+		c.JSON(http.StatusOK, user)
+	}
 }

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"net/http"
 	"time"
 )
@@ -17,7 +18,7 @@ type AuthSession struct {
 // AuthContext contains authentication data
 type AuthContext struct {
 	Session *AuthSession // Session contains session info
-	User    *AccountUser // User authenticated user
+	User    *UserAccount // User authenticated user
 	Token   string       // Token contains authentication token
 }
 
@@ -38,9 +39,9 @@ var (
 // AuthService defines methods of authentication service
 type AuthService interface {
 	// LoginInternal creates a session for internal user
-	LoginInternal(privileged bool) (*AuthContext, error)
+	LoginInternal(ctx context.Context, privileged bool) (*AuthContext, error)
 	// LoginWithCredentials login user with given credentials
-	LoginWithCredentials(authorization string, authorizationType int) (*AuthContext, error)
+	LoginWithCredentials(ctx context.Context, authorization string, authorizationType int) (*AuthContext, error)
 	// Logout log out user
-	Logout(aac *AuthContext) error
+	Logout(ctx context.Context) error
 }

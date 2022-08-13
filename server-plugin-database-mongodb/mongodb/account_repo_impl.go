@@ -15,8 +15,8 @@ const userAccountCollectionName = "account.user"
 
 // database.repos.AccountRepository methods
 
-func (ext *ClientExtension) AccountFindUser(login string, lookupByEmail bool) *service.AccountUser {
-	coll := ext.userAccountCollection()
+func (ext *ClientExtension) AccountFindUser(ctx context.Context, login string, lookupByEmail bool) *service.UserAccount {
+	coll := ext.userAccountCollection(ctx)
 
 	var filter bson.D
 	if lookupByEmail {
@@ -30,8 +30,8 @@ func (ext *ClientExtension) AccountFindUser(login string, lookupByEmail bool) *s
 		filter = bson.D{{"login", login}}
 	}
 
-	var account service.AccountUser
-	if err := coll.FindOne(context.TODO(), filter).Decode(&account); err != nil {
+	var account service.UserAccount
+	if err := coll.FindOne(ctx, filter).Decode(&account); err != nil {
 		if err != mongo.ErrNoDocuments {
 			ext.log.Error("AccountFindUser(): query failed: %v", err)
 		}
@@ -41,8 +41,8 @@ func (ext *ClientExtension) AccountFindUser(login string, lookupByEmail bool) *s
 	return &account
 }
 
-func (ext *ClientExtension) AccountFindLoginUser(loginOrEmail string, passwordMatcher repos.PasswordMatcher) (*service.AccountUser, bool) {
-	coll := ext.userAccountCollection()
+func (ext *ClientExtension) AccountFindLoginUser(ctx context.Context, loginOrEmail string, passwordMatcher repos.PasswordMatcher) (*service.UserAccount, bool) {
+	coll := ext.userAccountCollection(ctx)
 
 	filter := bson.D{
 		{"$or", bson.A{
@@ -51,19 +51,19 @@ func (ext *ClientExtension) AccountFindLoginUser(loginOrEmail string, passwordMa
 		},
 		{"flags", bson.M{
 			"$nin": bson.A{
-				service.AccountUserInternal,  // excluding system accounts
-				service.AccountUserSuspended, // excluding suspended accounts
+				service.UserAccountInternal,  // excluding system accounts
+				service.UserAccountSuspended, // excluding suspended accounts
 			},
 		}},
 	}
 
 	var rawDoc bson.M
-	rawResult := coll.FindOne(context.TODO(), filter)
+	rawResult := coll.FindOne(ctx, filter)
 	if err := rawResult.Decode(&rawDoc); err == nil {
 		if pwd, ok := rawDoc["pwd"].(primitive.Binary); ok {
-			var account service.AccountUser
+			var account service.UserAccount
 			if err = rawResult.Decode(&account); err != nil {
-				ext.log.Error("AccountFindLoginUser(): failed to decode AccountUser data: %v", err)
+				ext.log.Error("AccountFindLoginUser(): failed to decode UserAccount data: %v", err)
 			}
 			return &account, passwordMatcher != nil && passwordMatcher(pwd.Data)
 		}
@@ -78,7 +78,7 @@ func (ext *ClientExtension) AccountFindLoginUser(loginOrEmail string, passwordMa
 
 // private
 
-func (ext *ClientExtension) userAccountCollection() *mongo.Collection {
+func (ext *ClientExtension) userAccountCollection(ctx context.Context) *mongo.Collection {
 	coll := ext.db.Collection(userAccountCollectionName)
 	indices := []mongo.IndexModel{
 		{
@@ -90,7 +90,7 @@ func (ext *ClientExtension) userAccountCollection() *mongo.Collection {
 		},
 	}
 
-	if _, err := coll.Indexes().CreateMany(context.TODO(), indices); err != nil {
+	if _, err := coll.Indexes().CreateMany(ctx, indices); err != nil {
 		ext.log.Error("userAccountCollection() could not create indices on %q: %v",
 			userAccountCollectionName, err)
 	}

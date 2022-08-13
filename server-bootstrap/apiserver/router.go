@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-http-utils/headers"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -35,6 +34,7 @@ func Router(log logging.Facade) http.Handler {
 
 	api := router.Group("/api")
 	{
+		registerEndpointsAccount(api.Group("/account"))
 		registerEndpointsAccount(api.Group("/accounts"))
 		registerEndpointsAuth(api.Group("/auth"))
 		registerEndpointsHealth(api.Group("/health"))
@@ -44,8 +44,6 @@ func Router(log logging.Facade) http.Handler {
 }
 
 // private
-
-var authContextKey = "$$aac." + strconv.Itoa(os.Getpid())
 
 func handleStandardError(err error, c *gin.Context) {
 	errStd, ok := err.(*service.E)
@@ -62,24 +60,15 @@ func handleStandardError(err error, c *gin.Context) {
 	c.AbortWithStatusJSON(httpCode, errStd)
 }
 
-func retrieveAuth(c *gin.Context) *service.AuthContext {
-	if raw, found := c.Get(authContextKey); found {
-		if auth, ok := raw.(*service.AuthContext); ok {
-			return auth
-		}
-	}
-	return nil
-}
-
 func tokenInterceptorMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader(headers.Authorization)
 		if strings.HasPrefix(authHeader, services.AuthSchemeBearer) {
-			auth, err := services.Auth().LoginWithCredentials(authHeader, service.AuthServiceHeaderCredentials)
-			if err != nil {
-				handleStandardError(err, c)
+			auth, err := services.Auth().LoginWithCredentials(c, authHeader, service.AuthServiceHeaderCredentials)
+			if err == nil {
+				c.Set(services.AuthContextKey, auth)
 			} else {
-				c.Set(authContextKey, auth)
+				handleStandardError(err, c)
 			}
 		}
 	}

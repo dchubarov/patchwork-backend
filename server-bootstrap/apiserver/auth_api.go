@@ -10,42 +10,16 @@ import (
 )
 
 type loginResponse struct {
-	Token  string               `json:"token"`
-	Expire int64                `json:"expires"`
-	User   *service.AccountUser `json:"user"`
+	Token   string               `json:"token,omitempty"`
+	Expires int64                `json:"expires"`
+	User    *service.UserAccount `json:"user"`
 }
 
+// registry
+
 func registerEndpointsAuth(r gin.IRoutes) {
-	r.GET("/login", func(c *gin.Context) {
-		var aac *service.AuthContext
-		if aac = retrieveAuth(c); aac == nil {
-			loginAac, err := services.Auth().LoginWithCredentials(
-				c.GetHeader(headers.Authorization),
-				service.AuthServiceHeaderCredentials)
-
-			if err != nil {
-				handleStandardError(err, c)
-			} else {
-				aac = loginAac
-			}
-		}
-
-		if aac != nil {
-			c.JSON(http.StatusOK, loginResponse{
-				Expire: aac.Session.Expires.Unix(),
-				User:   aac.User,
-				Token:  aac.Token,
-			})
-		}
-	})
-
-	r.GET("/logout", func(c *gin.Context) {
-		if err := services.Auth().Logout(retrieveAuth(c)); err != nil {
-			handleStandardError(err, c)
-		} else {
-			c.Status(http.StatusNoContent)
-		}
-	})
+	r.GET("/login", loginEndpoint)
+	r.GET("/logout", logoutEndpoint)
 
 	// TODO to be removed
 	r.GET("/password/hash", func(c *gin.Context) {
@@ -56,4 +30,40 @@ func registerEndpointsAuth(r gin.IRoutes) {
 			c.String(http.StatusOK, string(hash))
 		}
 	})
+}
+
+// endpoints
+
+func loginEndpoint(c *gin.Context) {
+	var aac *service.AuthContext
+	if aac = services.GetAuthFromContext(c); aac == nil {
+		loginAac, err := services.Auth().LoginWithCredentials(c, c.GetHeader(headers.Authorization), service.AuthServiceHeaderCredentials)
+
+		if err != nil {
+			handleStandardError(err, c)
+		} else {
+			aac = loginAac
+		}
+	}
+
+	if aac != nil {
+		httpCode := http.StatusOK
+		if aac.Token != "" {
+			httpCode = http.StatusCreated
+		}
+
+		c.JSON(httpCode, loginResponse{
+			Token:   aac.Token,
+			Expires: aac.Session.Expires.Unix(),
+			User:    aac.User,
+		})
+	}
+}
+
+func logoutEndpoint(c *gin.Context) {
+	if err := services.Auth().Logout(c); err != nil {
+		handleStandardError(err, c)
+	} else {
+		c.Status(http.StatusNoContent)
+	}
 }

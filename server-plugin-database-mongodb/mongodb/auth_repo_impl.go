@@ -15,7 +15,7 @@ const sessionTimeToLive = time.Hour * 8 // TODO session ttl must be configurable
 
 // database.repos.AuthRepository methods
 
-func (ext *ClientExtension) AuthFindSession(sid string) *service.AuthSession {
+func (ext *ClientExtension) AuthFindSession(ctx context.Context, sid string) *service.AuthSession {
 	oid, err := primitive.ObjectIDFromHex(sid)
 	if err != nil {
 		ext.log.Error("AuthFindSession() could not convert sid %q to ObjectID: %v", sid, err)
@@ -28,7 +28,7 @@ func (ext *ClientExtension) AuthFindSession(sid string) *service.AuthSession {
 	}
 
 	var sessionBson bson.M
-	sessionResult := ext.sessionCollection().FindOne(context.TODO(), filter)
+	sessionResult := ext.sessionCollection(ctx).FindOne(ctx, filter)
 	if err = sessionResult.Decode(&sessionBson); err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
 			ext.log.Error("AuthFindSession() query failed: %v", err)
@@ -46,7 +46,7 @@ func (ext *ClientExtension) AuthFindSession(sid string) *service.AuthSession {
 	return &session
 }
 
-func (ext *ClientExtension) AuthNewSession(user *service.AccountUser) *service.AuthSession {
+func (ext *ClientExtension) AuthNewSession(ctx context.Context, user *service.UserAccount) *service.AuthSession {
 	if user == nil || user.IsSuspended() {
 		ext.log.Error("AuthNewSession(): user %q is suspended", user.Login)
 		return nil
@@ -65,7 +65,7 @@ func (ext *ClientExtension) AuthNewSession(user *service.AccountUser) *service.A
 		{"expires", session.Expires},
 	}
 
-	if result, err := ext.sessionCollection().InsertOne(context.TODO(), sessionBson); err != nil || result.InsertedID == nil {
+	if result, err := ext.sessionCollection(ctx).InsertOne(ctx, sessionBson); err != nil || result.InsertedID == nil {
 		ext.log.Error("AuthNewSession(): insert failed: %v", err)
 		return nil
 	} else {
@@ -74,7 +74,7 @@ func (ext *ClientExtension) AuthNewSession(user *service.AccountUser) *service.A
 	}
 }
 
-func (ext *ClientExtension) AuthDeleteSession(session *service.AuthSession) bool {
+func (ext *ClientExtension) AuthDeleteSession(ctx context.Context, session *service.AuthSession) bool {
 	oid, err := primitive.ObjectIDFromHex(session.Sid)
 	if err != nil {
 		ext.log.Error("AuthDeleteSession() could not convert sid %q to ObjectID: %v", session.Sid, err)
@@ -82,7 +82,7 @@ func (ext *ClientExtension) AuthDeleteSession(session *service.AuthSession) bool
 	}
 
 	filter := bson.D{{"_id", oid}}
-	if result, err := ext.sessionCollection().DeleteOne(context.TODO(), filter); err != nil {
+	if result, err := ext.sessionCollection(ctx).DeleteOne(ctx, filter); err != nil {
 		ext.log.Error("AuthDeleteSession() query failed: %v", err)
 		return false
 	} else {
@@ -92,11 +92,11 @@ func (ext *ClientExtension) AuthDeleteSession(session *service.AuthSession) bool
 
 // private
 
-func (ext *ClientExtension) sessionCollection() *mongo.Collection {
+func (ext *ClientExtension) sessionCollection(ctx context.Context) *mongo.Collection {
 	coll := ext.db.Collection(sessionCollectionName)
 	index := mongo.IndexModel{Keys: bson.M{"expires": 1}}
 
-	if _, err := coll.Indexes().CreateOne(context.TODO(), index); err != nil {
+	if _, err := coll.Indexes().CreateOne(ctx, index); err != nil {
 		ext.log.Error("sessionCollection() could not create index on %q: %v", sessionCollectionName, err)
 	}
 

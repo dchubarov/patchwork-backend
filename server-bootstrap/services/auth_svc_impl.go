@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"encoding/base64"
 	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
@@ -38,23 +39,23 @@ var log = logging.Context("service.auth")
 
 // service.AuthService implementation
 
-func (s *authServiceImpl) LoginInternal(bool) (*service.AuthContext, error) {
+func (s *authServiceImpl) LoginInternal(context.Context, bool) (*service.AuthContext, error) {
 	// TODO not implemented
 	return nil, service.ErrServiceAuthFail
 }
 
-func (s *authServiceImpl) LoginWithCredentials(authorization string, authorizationType int) (*service.AuthContext, error) {
+func (s *authServiceImpl) LoginWithCredentials(ctx context.Context, authorization string, authorizationType int) (*service.AuthContext, error) {
 	if authorizationType == service.AuthServiceHeaderCredentials {
 		if strings.HasPrefix(authorization, AuthSchemeBearer) {
 			tokenString := authorization[len(AuthSchemeBearer):]
 			if sid, err := retrieveSessionFromToken(tokenString); err == nil {
-				if session := s.authRepo.AuthFindSession(sid); session != nil {
-					if user := s.accountRepo.AccountFindUser(session.User, false); user != nil {
+				if session := s.authRepo.AuthFindSession(ctx, sid); session != nil {
+					if user := s.accountRepo.AccountFindUser(ctx, session.User, false); user != nil {
 						if user.IsInternal() || user.IsSuspended() {
 							log.Warn("Login attempt blocked for user %q with flags %v", user.Login, user.Flags)
 							return nil, service.ErrServiceAuthLoginNotAllowed
 						}
-						return &service.AuthContext{Session: session, User: user, Token: tokenString}, nil
+						return &service.AuthContext{Session: session, User: user}, nil
 					}
 				} else {
 					return nil, service.ErrServiceAuthNoSession
@@ -65,13 +66,12 @@ func (s *authServiceImpl) LoginWithCredentials(authorization string, authorizati
 		} else if strings.HasPrefix(authorization, AuthSchemeBasic) {
 			if buf, err := base64.StdEncoding.DecodeString(authorization[len(AuthSchemeBasic):]); err == nil {
 				if username, password, ok := strings.Cut(string(buf), ":"); ok {
-					user, passwordOk := s.accountRepo.AccountFindLoginUser(username,
-						func(hashedPassword []byte) bool {
-							return passwordMatchesHash(hashedPassword, password)
-						})
+					user, passwordOk := s.accountRepo.AccountFindLoginUser(nil, username, func(hashedPassword []byte) bool {
+						return passwordMatchesHash(hashedPassword, password)
+					})
 
 					if user != nil && passwordOk {
-						session := s.authRepo.AuthNewSession(user)
+						session := s.authRepo.AuthNewSession(ctx, user)
 						if session == nil {
 							return nil, service.ErrServiceAuthFail
 						}
@@ -93,9 +93,9 @@ func (s *authServiceImpl) LoginWithCredentials(authorization string, authorizati
 	return nil, service.ErrServiceAuthInvalidData
 }
 
-func (s *authServiceImpl) Logout(aac *service.AuthContext) error {
-	if aac != nil {
-		if !s.authRepo.AuthDeleteSession(aac.Session) {
+func (s *authServiceImpl) Logout(ctx context.Context) error {
+	if aac := GetAuthFromContext(ctx); aac != nil {
+		if !s.authRepo.AuthDeleteSession(ctx, aac.Session) {
 			log.Error("Could not delete session %q", aac.Session.Sid)
 			return service.ErrServiceAuthFail
 		} else {

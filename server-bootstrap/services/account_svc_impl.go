@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"twowls.org/patchwork/commons/database/repos"
 	"twowls.org/patchwork/commons/service"
 	"twowls.org/patchwork/commons/singleton"
@@ -23,14 +24,14 @@ func Account() service.AccountService {
 
 // service.AccountService implementation
 
-func (s *accountServiceImpl) FindUser(loginOrEmail string, lookupByEmail bool, aac *service.AuthContext) (*service.AccountUser, error) {
-	if aac == nil {
+func (s *accountServiceImpl) FindUser(ctx context.Context, loginOrEmail string, lookupByEmail bool) (*service.UserAccount, error) {
+	if aac := GetAuthFromContext(ctx); aac == nil {
 		return nil, service.ErrServiceLoginRequired
 	} else if !aac.User.IsPrivileged() && !aac.User.Is(loginOrEmail) {
 		return nil, service.ErrServiceNoAccess
 	}
 
-	if user := s.accountRepo.AccountFindUser(loginOrEmail, lookupByEmail); user == nil {
+	if user := s.accountRepo.AccountFindUser(ctx, loginOrEmail, lookupByEmail); user == nil {
 		return nil, service.ErrServiceNoSuchResource
 	} else {
 		return user, nil
