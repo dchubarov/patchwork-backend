@@ -1,6 +1,11 @@
 # Use root/example as user/password credentials
 version: '3.9'
 
+##
+## TODO convert to a replica set in order to use transactions
+## Ref: https://blog.devgenius.io/how-to-deploy-a-mongodb-replicaset-using-docker-compose-a538100db471
+##
+
 services:
   mongo:
     image: mongo:${MONGO_VERSION}
