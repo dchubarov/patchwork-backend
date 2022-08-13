@@ -40,6 +40,14 @@ func (u *UserAccount) IsSuspended() bool {
 	return slices.Contains(u.Flags, UserAccountSuspended)
 }
 
+// TeamAccount contains team account information
+type TeamAccount struct {
+	Team string `json:"team"` // Team the team name
+	Cn   string `json:"cn"`   // Cn team common name
+}
+
+// AccountService provides methods for managing accounts
 type AccountService interface {
+	// FindUser get user account by login or email
 	FindUser(ctx context.Context, loginOrEmail string, lookupByEmail bool) (*UserAccount, error)
 }

@@ -66,7 +66,7 @@ func (s *authServiceImpl) LoginWithCredentials(ctx context.Context, authorizatio
 		} else if strings.HasPrefix(authorization, AuthSchemeBasic) {
 			if buf, err := base64.StdEncoding.DecodeString(authorization[len(AuthSchemeBasic):]); err == nil {
 				if username, password, ok := strings.Cut(string(buf), ":"); ok {
-					user, passwordOk := s.accountRepo.AccountFindLoginUser(nil, username, func(hashedPassword []byte) bool {
+					user, passwordOk := s.accountRepo.AccountFindLoginUser(ctx, username, func(hashedPassword []byte) bool {
 						return passwordMatchesHash(hashedPassword, password)
 					})
 
