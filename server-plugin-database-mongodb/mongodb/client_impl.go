@@ -35,16 +35,16 @@ func (ext *ClientExtension) Configure(opts *extension.Options) error {
 
 	uri := opts.StrConfigDefault("uri", "")
 	if uri == "" {
-		ext.log.Error("Connection uri is empty")
+		ext.log.Errorf("Connection uri is empty")
 		return ErrInvalidUri
 	}
 
 	conn, err := connstring.ParseAndValidate(uri)
 	if err != nil {
-		ext.log.Error("Invalid connection URI: %v", err)
+		ext.log.Errorf("Invalid connection URI: %v", err)
 		return ErrInvalidUri
 	} else if conn.Database == "" {
-		ext.log.Error("Connection URI does not include database name")
+		ext.log.Errorf("Connection URI does not include database name")
 		return ErrInvalidUri
 	}
 
@@ -60,7 +60,7 @@ func (ext *ClientExtension) Configure(opts *extension.Options) error {
 
 	client, err := mongo.NewClient(clientOpts)
 	if err != nil {
-		ext.log.Error("Create client failed: %v", err)
+		ext.log.Errorf("Create client failed: %v", err)
 		return ErrCreateClient
 	}
 
@@ -74,23 +74,23 @@ func (ext *ClientExtension) Configure(opts *extension.Options) error {
 
 func (ext *ClientExtension) Connect(ctx context.Context) error {
 	if err := ext.client.Connect(ctx); err != nil {
-		ext.log.Error("Connection error: v%v", err)
+		ext.log.Errorf("Connection error: v%v", err)
 		return ErrConnect
 	}
 
 	var info bson.M
 	if err := ext.db.RunCommand(ctx, bson.D{{"buildInfo", 1}}).Decode(&info); err != nil {
-		ext.log.Error("Cannot get server info: %v", err)
+		ext.log.Errorf("Cannot get server info: %v", err)
 		return ErrConnect
 	}
 
-	ext.log.Info("Connected to deployment: %v, version %v", ext.conn.Hosts, info["version"])
+	ext.log.Infof("Connected to deployment: %v, version %v", ext.conn.Hosts, info["version"])
 	return nil
 }
 
 func (ext *ClientExtension) Disconnect(ctx context.Context) error {
 	if err := ext.client.Disconnect(ctx); err != nil {
-		ext.log.Error("Disconnect error %v", err)
+		ext.log.Errorf("Disconnect error %v", err)
 		return ErrDisconnect
 	}
 	return nil
@@ -98,7 +98,7 @@ func (ext *ClientExtension) Disconnect(ctx context.Context) error {
 
 func (ext *ClientExtension) CallInTransaction(ctx context.Context, worker database.TxWorkerCallable) (any, error) {
 	if worker == nil {
-		ext.log.Warn("CallInTransaction() no worker")
+		ext.log.Warnf("CallInTransaction() no worker")
 		return nil, nil
 	}
 
@@ -108,9 +108,9 @@ func (ext *ClientExtension) CallInTransaction(ctx context.Context, worker databa
 		defer func() {
 			if txErr != nil {
 				if abortErr := session.AbortTransaction(ctx); abortErr != nil {
-					ext.log.Error("CallInTransaction() abort transaction failed: %v", abortErr)
+					ext.log.Errorf("CallInTransaction() abort transaction failed: %v", abortErr)
 				} else {
-					ext.log.Debug("CallInTransaction() transaction aborted")
+					ext.log.Debugf("CallInTransaction() transaction aborted")
 				}
 			}
 			session.EndSession(ctx)
@@ -118,26 +118,26 @@ func (ext *ClientExtension) CallInTransaction(ctx context.Context, worker databa
 
 		sc := mongo.NewSessionContext(ctx, session)
 		if err = sc.StartTransaction(ext.txOptions()); err != nil {
-			ext.log.Debug("CallInTransaction() start transaction failed: %v", err)
+			ext.log.Debugf("CallInTransaction() start transaction failed: %v", err)
 			return nil, database.ErrClientTxFail
 		}
 
-		ext.log.Debug("CallInTransaction() begin transaction")
+		ext.log.Debugf("CallInTransaction() begin transaction")
 		var result any
 		if result, txErr = worker(sc); txErr != nil {
-			ext.log.Error("CallInTransaction() worker returned error: %v", txErr)
+			ext.log.Errorf("CallInTransaction() worker returned error: %v", txErr)
 			return nil, txErr
 		}
 
 		if txErr = sc.CommitTransaction(sc); txErr != nil {
-			ext.log.Error("CallInTransaction() commit failed: %v", txErr)
+			ext.log.Errorf("CallInTransaction() commit failed: %v", txErr)
 			return nil, database.ErrClientTxFail
 		}
 
-		ext.log.Debug("CallInTransaction() transaction committed")
+		ext.log.Debugf("CallInTransaction() transaction committed")
 		return result, nil
 	} else {
-		ext.log.Error("CallInTransaction() start session failed: %v")
+		ext.log.Errorf("CallInTransaction() start session failed: %v")
 		return nil, database.ErrClientTxFail
 	}
 }

@@ -4,5 +4,4 @@ use (
 	./commons
 	./server-bootstrap
 	./server-plugin-database-mongodb
-	./server-plugin-logging-zerolog
 )

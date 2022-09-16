@@ -16,9 +16,8 @@ import (
 )
 
 func Router(log logging.Facade) http.Handler {
-	if !log.IsDebugEnabled() {
-		gin.SetMode(gin.ReleaseMode)
-	}
+	// TODO set release mode if necessary
+	// gin.SetMode(gin.ReleaseMode)
 
 	router := gin.New()
 	router.Use(gin.Recovery())
@@ -48,7 +47,7 @@ func Router(log logging.Facade) http.Handler {
 func handleStandardError(err error, c *gin.Context) {
 	errStd, ok := err.(*service.E)
 	if !ok {
-		log.Warn("Service returned error which will not be forwarded to user: %v", err)
+		log.Warn().Err(err).Msgf("Service returned error which will not be forwarded to user")
 		errStd = service.ErrServiceUnspecific
 	}
 
@@ -88,9 +87,11 @@ func loggingMiddleware(log logging.Facade) gin.HandlerFunc {
 			"duration": duration,
 		}
 
-		log.InfoFields(fields, "%s %-7s %-30s (%s)",
-			coloredHttpStatus(fields["status"].(int)), fields["method"], fields["path"],
-			duration.Round(time.Microsecond).String())
+		log.Info().
+			Fields(fields).
+			Msgf("%s %-7s %-30s (%s)",
+				coloredHttpStatus(fields["status"].(int)), fields["method"], fields["path"],
+				duration.Round(time.Microsecond).String())
 	}
 }
 

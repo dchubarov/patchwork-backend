@@ -1,24 +1,22 @@
 package logging
 
+import "github.com/rs/zerolog"
+
 // Facade represents logging facade
 type Facade interface {
-	Trace(msg string, v ...any)
-	Debug(msg string, v ...any)
-	Request(msg string, v ...any)
-	Info(msg string, v ...any)
-	Warn(msg string, v ...any)
-	Error(msg string, v ...any)
-	Panic(msg string, v ...any)
+	Trace() *zerolog.Event
+	Debug() *zerolog.Event
+	Info() *zerolog.Event
+	Warn() *zerolog.Event
+	Error() *zerolog.Event
+	Panic() *zerolog.Event
 
-	TraceFields(fields any, msg string, v ...any)
-	DebugFields(fields any, msg string, v ...any)
-	RequestFields(fields any, msg string, v ...any)
-	InfoFields(fields any, msg string, v ...any)
-	WarnFields(fields any, msg string, v ...any)
-	ErrorFields(fields any, msg string, v ...any)
-	PanicFields(fields any, msg string, v ...any)
+	Tracef(format string, args ...any)
+	Debugf(format string, args ...any)
+	Infof(format string, args ...any)
+	Warnf(format string, args ...any)
+	Errorf(format string, args ...any)
+	Panicf(format string, args ...any)
 
-	Context(name string) Facade
-
-	IsDebugEnabled() bool
+	WithComponent(component string) Facade
 }

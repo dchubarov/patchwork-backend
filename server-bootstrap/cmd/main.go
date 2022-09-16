@@ -22,6 +22,6 @@ func awaitTermination() os.Signal {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	s := <-quit
 
-	logging.Info("Received interrupt signal: %v", s)
+	logging.Infof("Received interrupt signal: %v", s)
 	return s
 }

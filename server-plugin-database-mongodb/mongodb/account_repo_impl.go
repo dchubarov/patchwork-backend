@@ -33,7 +33,7 @@ func (ext *ClientExtension) AccountFindUser(ctx context.Context, login string, l
 	var account service.UserAccount
 	if err := coll.FindOne(ctx, filter).Decode(&account); err != nil {
 		if err != mongo.ErrNoDocuments {
-			ext.log.Error("AccountFindUser(): query failed: %v", err)
+			ext.log.Errorf("AccountFindUser(): query failed: %v", err)
 		}
 		return nil
 	}
@@ -63,13 +63,13 @@ func (ext *ClientExtension) AccountFindLoginUser(ctx context.Context, loginOrEma
 		if pwd, ok := rawDoc["pwd"].(primitive.Binary); ok {
 			var account service.UserAccount
 			if err = rawResult.Decode(&account); err != nil {
-				ext.log.Error("AccountFindLoginUser(): failed to decode UserAccount data: %v", err)
+				ext.log.Errorf("AccountFindLoginUser(): failed to decode UserAccount data: %v", err)
 			}
 			return &account, passwordMatcher != nil && passwordMatcher(pwd.Data)
 		}
 	} else {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
-			ext.log.Error("AccountFindLoginUser(): query failed: %v", err)
+			ext.log.Errorf("AccountFindLoginUser(): query failed: %v", err)
 		}
 	}
 
@@ -91,7 +91,7 @@ func (ext *ClientExtension) userAccountCollection(ctx context.Context) *mongo.Co
 	}
 
 	if _, err := coll.Indexes().CreateMany(ctx, indices); err != nil {
-		ext.log.Error("userAccountCollection() could not create indices on %q: %v",
+		ext.log.Errorf("userAccountCollection() could not create indices on %q: %v",
 			userAccountCollectionName, err)
 	}
 

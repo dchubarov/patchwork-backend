@@ -1,93 +1,185 @@
 package logging
 
 import (
-	"errors"
-	"strings"
-	"twowls.org/patchwork/commons/extension"
+	"fmt"
+	"github.com/rs/zerolog"
+	"os"
+	"time"
 	"twowls.org/patchwork/commons/logging"
-	"twowls.org/patchwork/commons/singleton"
 	"twowls.org/patchwork/server/bootstrap/config"
-	"twowls.org/patchwork/server/bootstrap/plugins"
 )
 
-const loggingPluginPrefix = "logging-"
+const (
+	componentFieldName = "component"
+	rootComponentName  = "main"
+)
 
-var rootLogger = singleton.Lazy(func() logging.Facade {
-	var err error
-	if pluginName := config.Values().Logging.Plugin; pluginName != "" {
-		var info extension.PluginInfo
-		if info, err = plugins.Load(loggingPluginPrefix + strings.ToLower(pluginName)); err == nil {
-			if ext := info.DefaultExtension(); ext != nil {
-				if logger, ok := ext.(logging.Facade); ok {
-					options := extension.EmptyOptions().
-						PutConfig("level", config.Values().Logging.Level).
-						PutConfig("noColor", config.Values().Logging.NoColor)
+type defaultFacade struct {
+	parent    *defaultFacade
+	logger    *zerolog.Logger
+	component string
+}
 
-					if err = ext.Configure(options); err == nil {
-						logger.Info("Logging is provided via plugin: %q (%s)", pluginName, info.Description())
-						return logger
-					}
-				}
-			}
+var root *defaultFacade
 
-			if err == nil {
-				err = errors.New("invalid extension")
-			}
+// logging.Facade methods -> defaultFacade
+
+func (f *defaultFacade) Trace() *zerolog.Event {
+	return f.logger.Trace()
+}
+
+func (f *defaultFacade) Debug() *zerolog.Event {
+	return f.logger.Debug()
+}
+
+func (f *defaultFacade) Info() *zerolog.Event {
+	return f.logger.Info()
+}
+
+func (f *defaultFacade) Warn() *zerolog.Event {
+	return f.logger.Warn()
+}
+
+func (f *defaultFacade) Error() *zerolog.Event {
+	return f.logger.Error()
+}
+
+func (f *defaultFacade) Panic() *zerolog.Event {
+	return f.logger.Panic()
+}
+
+func (f *defaultFacade) Tracef(format string, args ...any) {
+	f.Trace().Msgf(format, args...)
+}
+
+func (f *defaultFacade) Debugf(format string, args ...any) {
+	f.Debug().Msgf(format, args...)
+}
+
+func (f *defaultFacade) Infof(format string, args ...any) {
+	f.Info().Msgf(format, args...)
+}
+
+func (f *defaultFacade) Warnf(format string, args ...any) {
+	f.Warn().Msgf(format, args...)
+}
+
+func (f *defaultFacade) Errorf(format string, args ...any) {
+	f.Error().Msgf(format, args...)
+}
+
+func (f *defaultFacade) Panicf(format string, args ...any) {
+	f.Panic().Msgf(format, args...)
+}
+
+func (f *defaultFacade) WithComponent(component string) logging.Facade {
+	label := component
+	for p := f; p != nil; p = p.parent {
+		if len(p.component) > 0 {
+			label = p.component + "." + label
 		}
 	}
 
-	logger := &fallbackLogger{}
-	if err != nil {
-		logger.Error("Logging plugin failed to load: %v", err)
-	} else {
-		logger.Warn("Logging plugin is not configured")
+	subLogger := f.logger.With().
+		Str(componentFieldName, prettyComponent(label)).
+		Logger()
+
+	return &defaultFacade{
+		parent:    f,
+		logger:    &subLogger,
+		component: component,
+	}
+}
+
+// global convenience functions
+
+func Trace() *zerolog.Event {
+	return root.Trace()
+}
+
+func Debug() *zerolog.Event {
+	return root.Debug()
+}
+
+func Info() *zerolog.Event {
+	return root.Info()
+}
+
+func Warn() *zerolog.Event {
+	return root.Warn()
+}
+
+func Error() *zerolog.Event {
+	return root.Error()
+}
+
+func Panic() *zerolog.Event {
+	return root.Panic()
+}
+
+func Tracef(format string, args ...any) {
+	root.Tracef(format, args...)
+}
+
+func Debugf(format string, args ...any) {
+	root.Debugf(format, args...)
+}
+
+func Infof(format string, args ...any) {
+	root.Infof(format, args...)
+}
+
+func Warnf(format string, args ...any) {
+	root.Warnf(format, args...)
+}
+
+func Errorf(format string, args ...any) {
+	root.Errorf(format, args...)
+}
+
+func Panicf(format string, args ...any) {
+	root.Panicf(format, args...)
+}
+
+func WithComponent(component string) logging.Facade {
+	return root.WithComponent(component)
+}
+
+// initialization
+
+func init() {
+	console := zerolog.ConsoleWriter{
+		Out:        os.Stdout,
+		NoColor:    config.Values().Logging.NoColor,
+		TimeFormat: time.Stamp,
+		PartsOrder: []string{
+			zerolog.TimestampFieldName,
+			zerolog.LevelFieldName,
+			componentFieldName,
+			zerolog.CallerFieldName,
+			zerolog.MessageFieldName,
+		},
+		FieldsExclude: []string{
+			componentFieldName,
+		},
 	}
 
-	return logger
-})
+	logger := zerolog.New(console).With().
+		Str(componentFieldName, prettyComponent(rootComponentName)).
+		Timestamp().
+		Logger()
 
-func Root() logging.Facade {
-	return rootLogger.Instance()
+	if level, err := zerolog.ParseLevel(config.Values().Logging.Level); err == nil {
+		logger = logger.Level(level)
+	}
+
+	root = &defaultFacade{
+		logger: &logger,
+	}
 }
 
-// Package-level logging facade (convenience shortcuts)
+// private
 
-// Trace is a shortcut for Facade.Trace() on root logger
-func Trace(format string, v ...any) {
-	Root().Debug(format, v...)
-}
-
-// Debug is a shortcut for Facade.Debug() on root logger
-func Debug(format string, v ...any) {
-	Root().Debug(format, v...)
-}
-
-// Request is a shortcut for Facade.Request() on root logger
-func Request(format string, v ...any) {
-	Root().Request(format, v...)
-}
-
-// Info is a shortcut for Facade.Info() on root logger
-func Info(format string, v ...any) {
-	Root().Info(format, v...)
-}
-
-// Warn is a shortcut for Facade.Warn() on root logger
-func Warn(format string, v ...any) {
-	Root().Warn(format, v...)
-}
-
-// Error is a shortcut for Facade.Error() on root logger
-func Error(format string, v ...any) {
-	Root().Error(format, v...)
-}
-
-// Panic is a shortcut for Facade.Panic() on root logger
-func Panic(format string, v ...any) {
-	Root().Panic(format, v...)
-}
-
-// Context is a shortcut for Facade.Context() on root logger
-func Context(name string) logging.Facade {
-	return Root().Context(name)
+func prettyComponent(component string) string {
+	return fmt.Sprintf("[%12s]", component)
 }

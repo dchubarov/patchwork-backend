@@ -32,10 +32,10 @@ var s = singleton.Lazy(func() *Shutdown {
 
 func (s *Shutdown) Register(tag string, timeout time.Duration, handler hookFunc) {
 	if s.InProgress {
-		logging.Panic("cannot register while shutdown is in progress")
+		logging.Panic().Msg("cannot register while shutdown is in progress")
 	}
 
-	logging.Debug("Registered shutdown hook for %s", tag)
+	logging.Debugf("Registered shutdown hook for %s", tag)
 	s.hooks = slices.Insert(s.hooks, 0, &hook{
 		tag:     tag,
 		handler: handler,
@@ -44,14 +44,14 @@ func (s *Shutdown) Register(tag string, timeout time.Duration, handler hookFunc)
 }
 
 func (s *Shutdown) ShutdownAll() {
-	log := logging.Context("shutdown")
+	log := logging.WithComponent("shutdown")
 	hookCount := len(s.hooks)
 	if hookCount < 1 {
-		log.Debug("No shutdown hooks were registered")
+		log.Debug().Msg("No shutdown hooks were registered")
 		return
 	}
 
-	log.Info("Shutting down...")
+	log.Info().Msg("Shutting down...")
 
 	s.InProgress = true
 	defer func() {
@@ -80,10 +80,10 @@ func (s *Shutdown) ShutdownAll() {
 		shutdownOne(h)
 		elapsedMillis := h.elapsed.Round(time.Microsecond).String()
 		if h.error != nil {
-			log.Warn("[%d of %d] %s: failed: %v (%s)",
+			log.Warnf("[%d of %d] %s: failed: %v (%s)",
 				i+1, hookCount, h.tag, h.error, elapsedMillis)
 		} else {
-			log.Info("%d/%d %s: done (%s)",
+			log.Infof("%d/%d %s: done (%s)",
 				i+1, hookCount, h.tag, elapsedMillis)
 		}
 	}

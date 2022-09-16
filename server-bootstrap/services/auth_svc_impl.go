@@ -35,7 +35,7 @@ func Auth() service.AuthService {
 	return authService.Instance()
 }
 
-var log = logging.Context("service.auth")
+var log = logging.WithComponent("service.auth")
 
 // service.AuthService implementation
 
@@ -52,7 +52,7 @@ func (s *authServiceImpl) LoginWithCredentials(ctx context.Context, authorizatio
 				if session := s.authRepo.AuthFindSession(ctx, sid); session != nil {
 					if user := s.accountRepo.AccountFindUser(ctx, session.User, false); user != nil {
 						if user.IsInternal() || user.IsSuspended() {
-							log.Warn("Login attempt blocked for user %q with flags %v", user.Login, user.Flags)
+							log.Warnf("Login attempt blocked for user %q with flags %v", user.Login, user.Flags)
 							return nil, service.ErrServiceAuthLoginNotAllowed
 						}
 						return &service.AuthContext{Session: session, User: user}, nil
@@ -61,7 +61,7 @@ func (s *authServiceImpl) LoginWithCredentials(ctx context.Context, authorizatio
 					return nil, service.ErrServiceAuthNoSession
 				}
 			} else {
-				log.Error("Token validation error")
+				log.Error().Msg("Token validation error")
 			}
 		} else if strings.HasPrefix(authorization, AuthSchemeBasic) {
 			if buf, err := base64.StdEncoding.DecodeString(authorization[len(AuthSchemeBasic):]); err == nil {
@@ -96,7 +96,7 @@ func (s *authServiceImpl) LoginWithCredentials(ctx context.Context, authorizatio
 func (s *authServiceImpl) Logout(ctx context.Context) error {
 	if aac := GetAuthFromContext(ctx); aac != nil {
 		if !s.authRepo.AuthDeleteSession(ctx, aac.Session) {
-			log.Error("Could not delete session %q", aac.Session.Sid)
+			log.Errorf("Could not delete session %q", aac.Session.Sid)
 			return service.ErrServiceAuthFail
 		} else {
 			return nil

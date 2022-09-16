@@ -14,12 +14,12 @@ const (
 	shutdownTimeout = 10 * time.Second
 )
 
-var log = logging.Context("apiserver")
+var log = logging.WithComponent("apiserver")
 
 // Start starts the API server.
 func Start() {
 	cfg := &config.Values().Apiserver
-	log.Info("Starting on '%s:%d'...", cfg.ListenAddr, cfg.Port)
+	log.Infof("Starting on '%s:%d'...", cfg.ListenAddr, cfg.Port)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf("%s:%d", cfg.ListenAddr, cfg.Port),
@@ -29,7 +29,7 @@ func Start() {
 	go func() {
 		shutdown.Register("apiserver", shutdownTimeout, srv.Shutdown)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Error("failed to start: %v", err)
+			log.Error().Err(err).Msg("failed to start")
 		}
 	}()
 }
