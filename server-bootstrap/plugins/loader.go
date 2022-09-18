@@ -10,6 +10,7 @@ import (
 	"sync"
 	"twowls.org/patchwork/commons/extension"
 	"twowls.org/patchwork/server/bootstrap/config"
+	"twowls.org/patchwork/server/bootstrap/logging"
 )
 
 var (
@@ -47,6 +48,7 @@ func Load(name string) (extension.PluginInfo, error) {
 		if err != nil {
 			return nil, errors.New(fmt.Sprintf("plugin entrypoint invocation error: %v", err))
 		}
+		logging.Info().Msgf("Loaded plugin %q (%s)", name, info.Description())
 		loaded[location] = info
 		return info, nil
 	}

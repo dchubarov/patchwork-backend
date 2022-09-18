@@ -27,7 +27,6 @@ var (
 		}
 
 		if p, err := plugins.Load(databasePluginPrefix + scheme[1]); err == nil {
-			log.Infof("Loaded database plugin %q (%s)", scheme[1], p.Description())
 			if clientExt := p.DefaultExtension(); clientExt != nil {
 				if client, ok := clientExt.(database.Client); ok {
 					opts := extension.BasicOptions(false, log.WithComponent(scheme[1])).
@@ -44,7 +43,7 @@ var (
 			}
 		}
 
-		log.Panicf("Unable to initialize database plugin for scheme %q", scheme[1])
+		log.Panic().Msgf("Unable to initialize database plugin for scheme %q", scheme[1])
 		return nil
 	})
 )

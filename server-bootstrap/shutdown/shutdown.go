@@ -35,7 +35,7 @@ func (s *Shutdown) Register(tag string, timeout time.Duration, handler hookFunc)
 		logging.Panic().Msg("cannot register while shutdown is in progress")
 	}
 
-	logging.Debugf("Registered shutdown hook for %s", tag)
+	logging.Debug().Msgf("Registered shutdown hook for %s", tag)
 	s.hooks = slices.Insert(s.hooks, 0, &hook{
 		tag:     tag,
 		handler: handler,
@@ -80,10 +80,10 @@ func (s *Shutdown) ShutdownAll() {
 		shutdownOne(h)
 		elapsedMillis := h.elapsed.Round(time.Microsecond).String()
 		if h.error != nil {
-			log.Warnf("[%d of %d] %s: failed: %v (%s)",
+			log.Warn().Msgf("[%d of %d] %s: failed: %v (%s)",
 				i+1, hookCount, h.tag, h.error, elapsedMillis)
 		} else {
-			log.Infof("%d/%d %s: done (%s)",
+			log.Info().Msgf("%d/%d %s: done (%s)",
 				i+1, hookCount, h.tag, elapsedMillis)
 		}
 	}

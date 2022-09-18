@@ -19,7 +19,7 @@ var log = logging.WithComponent("apiserver")
 // Start starts the API server.
 func Start() {
 	cfg := &config.Values().Apiserver
-	log.Infof("Starting on '%s:%d'...", cfg.ListenAddr, cfg.Port)
+	log.Info().Msgf("Starting on '%s:%d'...", cfg.ListenAddr, cfg.Port)
 
 	srv := &http.Server{
 		Addr:    fmt.Sprintf("%s:%d", cfg.ListenAddr, cfg.Port),

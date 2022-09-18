@@ -11,12 +11,5 @@ type Facade interface {
 	Error() *zerolog.Event
 	Panic() *zerolog.Event
 
-	Tracef(format string, args ...any)
-	Debugf(format string, args ...any)
-	Infof(format string, args ...any)
-	Warnf(format string, args ...any)
-	Errorf(format string, args ...any)
-	Panicf(format string, args ...any)
-
 	WithComponent(component string) Facade
 }

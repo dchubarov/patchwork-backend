@@ -48,30 +48,6 @@ func (f *defaultFacade) Panic() *zerolog.Event {
 	return f.logger.Panic()
 }
 
-func (f *defaultFacade) Tracef(format string, args ...any) {
-	f.Trace().Msgf(format, args...)
-}
-
-func (f *defaultFacade) Debugf(format string, args ...any) {
-	f.Debug().Msgf(format, args...)
-}
-
-func (f *defaultFacade) Infof(format string, args ...any) {
-	f.Info().Msgf(format, args...)
-}
-
-func (f *defaultFacade) Warnf(format string, args ...any) {
-	f.Warn().Msgf(format, args...)
-}
-
-func (f *defaultFacade) Errorf(format string, args ...any) {
-	f.Error().Msgf(format, args...)
-}
-
-func (f *defaultFacade) Panicf(format string, args ...any) {
-	f.Panic().Msgf(format, args...)
-}
-
 func (f *defaultFacade) WithComponent(component string) logging.Facade {
 	label := component
 	for p := f; p != nil; p = p.parent {
@@ -115,30 +91,6 @@ func Error() *zerolog.Event {
 
 func Panic() *zerolog.Event {
 	return root.Panic()
-}
-
-func Tracef(format string, args ...any) {
-	root.Tracef(format, args...)
-}
-
-func Debugf(format string, args ...any) {
-	root.Debugf(format, args...)
-}
-
-func Infof(format string, args ...any) {
-	root.Infof(format, args...)
-}
-
-func Warnf(format string, args ...any) {
-	root.Warnf(format, args...)
-}
-
-func Errorf(format string, args ...any) {
-	root.Errorf(format, args...)
-}
-
-func Panicf(format string, args ...any) {
-	root.Panicf(format, args...)
 }
 
 func WithComponent(component string) logging.Facade {

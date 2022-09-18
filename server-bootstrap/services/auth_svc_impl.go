@@ -52,7 +52,7 @@ func (s *authServiceImpl) LoginWithCredentials(ctx context.Context, authorizatio
 				if session := s.authRepo.AuthFindSession(ctx, sid); session != nil {
 					if user := s.accountRepo.AccountFindUser(ctx, session.User, false); user != nil {
 						if user.IsInternal() || user.IsSuspended() {
-							log.Warnf("Login attempt blocked for user %q with flags %v", user.Login, user.Flags)
+							log.Warn().Msgf("Login attempt blocked for user %q with flags %v", user.Login, user.Flags)
 							return nil, service.ErrServiceAuthLoginNotAllowed
 						}
 						return &service.AuthContext{Session: session, User: user}, nil
@@ -96,7 +96,7 @@ func (s *authServiceImpl) LoginWithCredentials(ctx context.Context, authorizatio
 func (s *authServiceImpl) Logout(ctx context.Context) error {
 	if aac := GetAuthFromContext(ctx); aac != nil {
 		if !s.authRepo.AuthDeleteSession(ctx, aac.Session) {
-			log.Errorf("Could not delete session %q", aac.Session.Sid)
+			log.Error().Msgf("Could not destroy session %q", aac.Session.Sid)
 			return service.ErrServiceAuthFail
 		} else {
 			return nil
