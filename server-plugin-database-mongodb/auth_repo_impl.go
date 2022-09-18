@@ -31,14 +31,14 @@ func (ext *ClientExtension) AuthFindSession(ctx context.Context, sid string) *se
 	sessionResult := ext.sessionCollection(ctx).FindOne(ctx, filter)
 	if err = sessionResult.Decode(&sessionBson); err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
-			ext.log.Error().Err(err).Msg("AuthFindSession() query failed")
+			ext.log.ErrorCtx(ctx).Err(err).Msg("AuthFindSession() query failed")
 		}
 		return nil
 	}
 
 	var session service.AuthSession
 	if err = sessionResult.Decode(&session); err != nil {
-		ext.log.Error().Err(err).Msg("AuthFindSession() could not decode session result")
+		ext.log.ErrorCtx(ctx).Err(err).Msg("AuthFindSession() could not decode session result")
 		return nil
 	}
 
@@ -66,7 +66,7 @@ func (ext *ClientExtension) AuthNewSession(ctx context.Context, user *service.Us
 	}
 
 	if result, err := ext.sessionCollection(ctx).InsertOne(ctx, sessionBson); err != nil || result.InsertedID == nil {
-		ext.log.Error().Err(err).Msg("AuthNewSession(): insert failed")
+		ext.log.ErrorCtx(ctx).Err(err).Msg("AuthNewSession(): insert failed")
 		return nil
 	} else {
 		session.Sid = result.InsertedID.(primitive.ObjectID).Hex()
@@ -83,7 +83,7 @@ func (ext *ClientExtension) AuthDeleteSession(ctx context.Context, session *serv
 
 	filter := bson.D{{"_id", oid}}
 	if result, err := ext.sessionCollection(ctx).DeleteOne(ctx, filter); err != nil {
-		ext.log.Error().Err(err).Msg("AuthDeleteSession() delete failed")
+		ext.log.ErrorCtx(ctx).Err(err).Msg("AuthDeleteSession() delete failed")
 		return false
 	} else {
 		return result.DeletedCount == 1

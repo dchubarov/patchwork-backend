@@ -17,7 +17,7 @@ type Apiserver struct {
 // Database contains database configuration values
 type Database struct {
 	// Url database connection URL
-	Url string
+	Url string `envconfig:"optional"`
 	// Username database username (empty if supplied as part of Url)
 	Username string `envconfig:"optional"`
 	// Password database password (empty if supplied as part of Url)
@@ -43,7 +43,7 @@ type Root struct {
 	// Logging logging configuration
 	Logging Logging
 	// PluginsDir specifies plugins directory
-	PluginsDir string
+	PluginsDir string `envconfig:"optional"`
 }
 
 var values = singleton.Lazy(load)

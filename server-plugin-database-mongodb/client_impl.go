@@ -97,10 +97,7 @@ func (ext *ClientExtension) Disconnect(ctx context.Context) error {
 }
 
 func (ext *ClientExtension) CallInTransaction(ctx context.Context, worker database.TxWorkerCallable) (any, error) {
-	if worker == nil {
-		ext.log.Warn().Msg("CallInTransaction() no worker")
-		return nil, nil
-	}
+	logger := ext.log.LoggerCtx(ctx)
 
 	if session, err := ext.client.StartSession(); err == nil {
 		var txErr error
@@ -108,9 +105,9 @@ func (ext *ClientExtension) CallInTransaction(ctx context.Context, worker databa
 		defer func() {
 			if txErr != nil {
 				if abortErr := session.AbortTransaction(ctx); abortErr != nil {
-					ext.log.Error().Err(abortErr).Msg("CallInTransaction() abort transaction failed")
+					logger.Error().Err(abortErr).Msg("CallInTransaction() abort transaction failed")
 				} else {
-					ext.log.Debug().Msg("CallInTransaction() transaction aborted")
+					logger.Debug().Msg("CallInTransaction() transaction aborted")
 				}
 			}
 			session.EndSession(ctx)
@@ -118,26 +115,26 @@ func (ext *ClientExtension) CallInTransaction(ctx context.Context, worker databa
 
 		sc := mongo.NewSessionContext(ctx, session)
 		if err = sc.StartTransaction(ext.txOptions()); err != nil {
-			ext.log.Error().Err(err).Msg("CallInTransaction() start transaction failed")
+			logger.Error().Err(err).Msg("CallInTransaction() start transaction failed")
 			return nil, database.ErrClientTxFail
 		}
 
 		ext.log.Debug().Msg("CallInTransaction() begin transaction")
 		var result any
 		if result, txErr = worker(sc); txErr != nil {
-			ext.log.Error().Err(txErr).Msg("CallInTransaction() worker returned error")
+			logger.Error().Err(txErr).Msg("CallInTransaction() worker returned error")
 			return nil, txErr
 		}
 
 		if txErr = sc.CommitTransaction(sc); txErr != nil {
-			ext.log.Error().Err(txErr).Msg("CallInTransaction() commit failed")
+			logger.Error().Err(txErr).Msg("CallInTransaction() commit failed")
 			return nil, database.ErrClientTxFail
 		}
 
-		ext.log.Debug().Msg("CallInTransaction() transaction committed")
+		logger.Debug().Msg("CallInTransaction() transaction committed")
 		return result, nil
 	} else {
-		ext.log.Error().Err(err).Msg("CallInTransaction() start session failed")
+		logger.Error().Err(err).Msg("CallInTransaction() start session failed")
 		return nil, database.ErrClientTxFail
 	}
 }

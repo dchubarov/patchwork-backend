@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"context"
 	"fmt"
 	"github.com/rs/zerolog"
 	"os"
@@ -18,11 +19,25 @@ type defaultFacade struct {
 	parent    *defaultFacade
 	logger    *zerolog.Logger
 	component string
+	enricher  logging.CtxEnricher
 }
 
 var root *defaultFacade
 
 // logging.Facade methods -> defaultFacade
+
+func (f *defaultFacade) Logger() *zerolog.Logger {
+	return f.logger
+}
+
+func (f *defaultFacade) LoggerCtx(ctx context.Context) *zerolog.Logger {
+	if f.enricher != nil {
+		l := f.logger.With().Fields(f.enricher(ctx)).Logger()
+		return &l
+	} else {
+		return f.logger
+	}
+}
 
 func (f *defaultFacade) Trace() *zerolog.Event {
 	return f.logger.Trace()
@@ -48,6 +63,38 @@ func (f *defaultFacade) Panic() *zerolog.Event {
 	return f.logger.Panic()
 }
 
+func (f *defaultFacade) TraceCtx(ctx context.Context) *zerolog.Event {
+	return f.enrichEvent(ctx, f.logger.Trace())
+}
+
+func (f *defaultFacade) DebugCtx(ctx context.Context) *zerolog.Event {
+	return f.enrichEvent(ctx, f.logger.Debug())
+}
+
+func (f *defaultFacade) InfoCtx(ctx context.Context) *zerolog.Event {
+	return f.enrichEvent(ctx, f.logger.Info())
+}
+
+func (f *defaultFacade) WarnCtx(ctx context.Context) *zerolog.Event {
+	return f.enrichEvent(ctx, f.logger.Warn())
+}
+
+func (f *defaultFacade) ErrorCtx(ctx context.Context) *zerolog.Event {
+	return f.enrichEvent(ctx, f.logger.Error())
+}
+
+func (f *defaultFacade) PanicCtx(ctx context.Context) *zerolog.Event {
+	return f.enrichEvent(ctx, f.logger.Panic())
+}
+
+func (f *defaultFacade) enrichEvent(ctx context.Context, event *zerolog.Event) *zerolog.Event {
+	if f.enricher != nil {
+		return event.Fields(f.enricher(ctx))
+	} else {
+		return event
+	}
+}
+
 func (f *defaultFacade) WithComponent(component string) logging.Facade {
 	label := component
 	for p := f; p != nil; p = p.parent {
@@ -64,6 +111,16 @@ func (f *defaultFacade) WithComponent(component string) logging.Facade {
 		parent:    f,
 		logger:    &subLogger,
 		component: component,
+		enricher:  f.enricher,
+	}
+}
+
+func (f *defaultFacade) WithCtxEnricher(enricher logging.CtxEnricher) logging.Facade {
+	return &defaultFacade{
+		parent:    f,
+		logger:    f.logger,
+		component: f.component,
+		enricher:  enricher,
 	}
 }
 
@@ -93,11 +150,39 @@ func Panic() *zerolog.Event {
 	return root.Panic()
 }
 
+func TraceCtx(ctx context.Context) *zerolog.Event {
+	return root.TraceCtx(ctx)
+}
+
+func DebugCtx(ctx context.Context) *zerolog.Event {
+	return root.DebugCtx(ctx)
+}
+
+func InfoCtx(ctx context.Context) *zerolog.Event {
+	return root.InfoCtx(ctx)
+}
+
+func WarnCtx(ctx context.Context) *zerolog.Event {
+	return root.WarnCtx(ctx)
+}
+
+func ErrorCtx(ctx context.Context) *zerolog.Event {
+	return root.ErrorCtx(ctx)
+}
+
+func PanicCtx(ctx context.Context) *zerolog.Event {
+	return root.PanicCtx(ctx)
+}
+
 func WithComponent(component string) logging.Facade {
 	return root.WithComponent(component)
 }
 
-// initialization
+func WithCtxEnricher(enricher logging.CtxEnricher) logging.Facade {
+	return root.WithCtxEnricher(enricher)
+}
+
+// private
 
 func init() {
 	console := zerolog.ConsoleWriter{
@@ -119,6 +204,7 @@ func init() {
 	logger := zerolog.New(console).With().
 		Str(componentFieldName, prettyComponent(rootComponentName)).
 		Timestamp().
+		//Caller().
 		Logger()
 
 	if level, err := zerolog.ParseLevel(config.Values().Logging.Level); err == nil {
@@ -129,8 +215,6 @@ func init() {
 		logger: &logger,
 	}
 }
-
-// private
 
 func prettyComponent(component string) string {
 	return fmt.Sprintf("[%12s]", component)

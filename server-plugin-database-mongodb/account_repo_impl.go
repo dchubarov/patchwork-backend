@@ -33,7 +33,7 @@ func (ext *ClientExtension) AccountFindUser(ctx context.Context, login string, l
 	var account service.UserAccount
 	if err := coll.FindOne(ctx, filter).Decode(&account); err != nil {
 		if err != mongo.ErrNoDocuments {
-			ext.log.Error().Err(err).Msg("AccountFindUser(): query failed")
+			ext.log.ErrorCtx(ctx).Err(err).Msg("AccountFindUser(): query failed")
 		}
 		return nil
 	}
@@ -63,13 +63,13 @@ func (ext *ClientExtension) AccountFindLoginUser(ctx context.Context, loginOrEma
 		if pwd, ok := rawDoc["pwd"].(primitive.Binary); ok {
 			var account service.UserAccount
 			if err = rawResult.Decode(&account); err != nil {
-				ext.log.Error().Err(err).Msg("AccountFindLoginUser(): failed to decode UserAccount data")
+				ext.log.ErrorCtx(ctx).Err(err).Msg("AccountFindLoginUser(): failed to decode UserAccount data")
 			}
 			return &account, passwordMatcher != nil && passwordMatcher(pwd.Data)
 		}
 	} else {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
-			ext.log.Error().Err(err).Msg("AccountFindLoginUser(): query failed")
+			ext.log.ErrorCtx(ctx).Err(err).Msg("AccountFindLoginUser(): query failed")
 		}
 	}
 
