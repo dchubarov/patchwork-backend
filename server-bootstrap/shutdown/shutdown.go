@@ -80,7 +80,7 @@ func (s *Shutdown) ShutdownAll() {
 		shutdownOne(h)
 		elapsedMillis := h.elapsed.Round(time.Microsecond).String()
 		if h.error != nil {
-			log.Warn().Msgf("[%d of %d] %s: failed: %v (%s)",
+			log.Warn().Msgf("[%d/%d] %s: failed: %v (%s)",
 				i+1, hookCount, h.tag, h.error, elapsedMillis)
 		} else {
 			log.Info().Msgf("%d/%d %s: done (%s)",

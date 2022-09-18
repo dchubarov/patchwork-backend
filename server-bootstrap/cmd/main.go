@@ -7,12 +7,14 @@ import (
 	"twowls.org/patchwork/server/bootstrap/apiserver"
 	"twowls.org/patchwork/server/bootstrap/database"
 	"twowls.org/patchwork/server/bootstrap/logging"
+	"twowls.org/patchwork/server/bootstrap/scheduler"
 	"twowls.org/patchwork/server/bootstrap/shutdown"
 )
 
 func main() {
 	defer shutdown.All()
 	database.MustConnect()
+	scheduler.Start()
 	apiserver.Start()
 	awaitTermination()
 }

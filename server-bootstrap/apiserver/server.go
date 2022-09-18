@@ -27,9 +27,10 @@ func Start() {
 	}
 
 	go func() {
-		shutdown.Register("apiserver", shutdownTimeout, srv.Shutdown)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Error().Err(err).Msg("failed to start")
 		}
 	}()
+
+	shutdown.Register("apiserver", shutdownTimeout, srv.Shutdown)
 }
