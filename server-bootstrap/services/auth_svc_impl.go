@@ -8,7 +8,7 @@ import (
 	"strings"
 	"twowls.org/patchwork/commons/database/repos"
 	"twowls.org/patchwork/commons/service"
-	"twowls.org/patchwork/commons/singleton"
+	"twowls.org/patchwork/commons/util/singleton"
 	"twowls.org/patchwork/server/bootstrap/database"
 	"twowls.org/patchwork/server/bootstrap/logging"
 )

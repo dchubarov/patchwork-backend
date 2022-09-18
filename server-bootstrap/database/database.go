@@ -6,7 +6,7 @@ import (
 	"time"
 	"twowls.org/patchwork/commons/database"
 	"twowls.org/patchwork/commons/extension"
-	"twowls.org/patchwork/commons/singleton"
+	"twowls.org/patchwork/commons/util/singleton"
 	"twowls.org/patchwork/server/bootstrap/config"
 	"twowls.org/patchwork/server/bootstrap/logging"
 	"twowls.org/patchwork/server/bootstrap/plugins"

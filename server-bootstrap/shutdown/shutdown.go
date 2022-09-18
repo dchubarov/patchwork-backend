@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"golang.org/x/exp/slices"
 	"time"
-	"twowls.org/patchwork/commons/singleton"
+	"twowls.org/patchwork/commons/util/singleton"
 	"twowls.org/patchwork/server/bootstrap/logging"
 )
 

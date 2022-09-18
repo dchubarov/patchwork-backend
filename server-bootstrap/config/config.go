@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/vrischmann/envconfig"
-	"twowls.org/patchwork/commons/singleton"
+	"twowls.org/patchwork/commons/util/singleton"
 )
 
 // Apiserver contains configuration of API server
