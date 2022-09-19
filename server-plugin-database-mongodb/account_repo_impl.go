@@ -17,6 +17,7 @@ const userAccountCollectionName = "account.user"
 
 func (ext *ClientExtension) AccountFindUser(ctx context.Context, login string, lookupByEmail bool) *service.UserAccount {
 	coll := ext.userAccountCollection(ctx)
+	clog := ext.contextLogger(ctx)
 
 	var filter bson.D
 	if lookupByEmail {
@@ -30,12 +31,12 @@ func (ext *ClientExtension) AccountFindUser(ctx context.Context, login string, l
 		filter = bson.D{{"login", login}}
 	}
 
-	ext.log.DebugCtx(ctx).Msgf("AccountFindUser(): query: %v", filter)
+	clog.Debug().Msgf("find one: %v", filter)
 
 	var account service.UserAccount
 	if err := coll.FindOne(ctx, filter).Decode(&account); err != nil {
 		if err != mongo.ErrNoDocuments {
-			ext.log.ErrorCtx(ctx).Err(err).Msg("AccountFindUser(): query failed")
+			clog.Error().Err(err).Send()
 		}
 		return nil
 	}
@@ -45,6 +46,7 @@ func (ext *ClientExtension) AccountFindUser(ctx context.Context, login string, l
 
 func (ext *ClientExtension) AccountFindLoginUser(ctx context.Context, loginOrEmail string, passwordMatcher repos.PasswordMatcher) (*service.UserAccount, bool) {
 	coll := ext.userAccountCollection(ctx)
+	clog := ext.contextLogger(ctx)
 
 	filter := bson.D{
 		{"$or", bson.A{
@@ -65,13 +67,13 @@ func (ext *ClientExtension) AccountFindLoginUser(ctx context.Context, loginOrEma
 		if pwd, ok := rawDoc["pwd"].(primitive.Binary); ok {
 			var account service.UserAccount
 			if err = rawResult.Decode(&account); err != nil {
-				ext.log.ErrorCtx(ctx).Err(err).Msg("AccountFindLoginUser(): failed to decode UserAccount data")
+				clog.Error().Err(err).Msg("failed to decode UserAccount data")
 			}
 			return &account, passwordMatcher != nil && passwordMatcher(pwd.Data)
 		}
 	} else {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
-			ext.log.ErrorCtx(ctx).Err(err).Msg("AccountFindLoginUser(): query failed")
+			clog.Error().Err(err).Send()
 		}
 	}
 
@@ -93,7 +95,7 @@ func (ext *ClientExtension) userAccountCollection(ctx context.Context) *mongo.Co
 	}
 
 	if _, err := coll.Indexes().CreateMany(ctx, indices); err != nil {
-		ext.log.Error().Err(err).Msgf("userAccountCollection() could not create indices on %q",
+		ext.contextLogger(ctx).Error().Err(err).Msgf("userAccountCollection() could not create indices on %q",
 			userAccountCollectionName)
 	}
 
