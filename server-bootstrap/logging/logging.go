@@ -12,7 +12,9 @@ import (
 
 const (
 	componentFieldName = "component"
-	rootComponentName  = "main"
+	hostFieldName      = "host"
+	pidFieldName       = "pid"
+	rootComponent      = "main"
 )
 
 type defaultFacade struct {
@@ -185,6 +187,11 @@ func WithCtxEnricher(enricher logging.CtxEnricher) logging.Facade {
 // private
 
 func init() {
+	hostname, err := os.Hostname()
+	if err != nil {
+		hostname = "unknown"
+	}
+
 	console := zerolog.ConsoleWriter{
 		Out:        os.Stdout,
 		NoColor:    config.Values().Logging.NoColor,
@@ -198,11 +205,15 @@ func init() {
 		},
 		FieldsExclude: []string{
 			componentFieldName,
+			hostFieldName,
+			pidFieldName,
 		},
 	}
 
 	logger := zerolog.New(console).With().
-		Str(componentFieldName, prettyComponent(rootComponentName)).
+		Str(componentFieldName, prettyComponent(rootComponent)).
+		Str(hostFieldName, hostname).
+		Int(pidFieldName, os.Getpid()).
 		Timestamp().
 		//Caller().
 		Logger()
