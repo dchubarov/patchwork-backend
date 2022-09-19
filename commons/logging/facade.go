@@ -5,6 +5,11 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const (
+	RequestCorrelationId = "request-id"
+	JobCorrelationId     = "job-id"
+)
+
 type CtxEnricher func(context.Context) any
 
 // Facade represents logging facade

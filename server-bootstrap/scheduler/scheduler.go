@@ -53,7 +53,7 @@ func Start() {
 			time.Sleep(time.Second)
 			return nil
 		},
-		IntervalSchedule: "10s",
+		IntervalSchedule: "120s",
 		StartImmediately: true,
 	})
 	// TODO end temp

@@ -30,6 +30,8 @@ func (ext *ClientExtension) AccountFindUser(ctx context.Context, login string, l
 		filter = bson.D{{"login", login}}
 	}
 
+	ext.log.DebugCtx(ctx).Msgf("AccountFindUser(): query: %v", filter)
+
 	var account service.UserAccount
 	if err := coll.FindOne(ctx, filter).Decode(&account); err != nil {
 		if err != mongo.ErrNoDocuments {

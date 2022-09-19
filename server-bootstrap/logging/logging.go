@@ -223,10 +223,27 @@ func init() {
 	}
 
 	root = &defaultFacade{
-		logger: &logger,
+		logger:   &logger,
+		enricher: defaultCtxEnricher,
 	}
 }
 
 func prettyComponent(component string) string {
 	return fmt.Sprintf("[%12s]", component)
+}
+
+func defaultCtxEnricher(ctx context.Context) any {
+	requestId, hasRequestId := ctx.Value(logging.RequestCorrelationId).(string)
+	jobId, hasJobId := ctx.Value(logging.JobCorrelationId).(string)
+	if hasRequestId || hasJobId {
+		m := make(map[string]any)
+		if hasRequestId {
+			m[logging.RequestCorrelationId] = requestId
+		}
+		if hasJobId {
+			m[logging.JobCorrelationId] = jobId
+		}
+		return m
+	}
+	return nil
 }

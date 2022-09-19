@@ -5,6 +5,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-http-utils/headers"
+	"github.com/rs/xid"
 	"net/http"
 	"strconv"
 	"strings"
@@ -76,6 +77,8 @@ func tokenInterceptorMiddleware() gin.HandlerFunc {
 func loggingMiddleware(log logging.Facade) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
+		// TODO use uuid generation service rather than call xid directly
+		c.Set(logging.RequestCorrelationId, xid.New().String())
 		c.Next()
 
 		duration := time.Since(start)
@@ -87,7 +90,7 @@ func loggingMiddleware(log logging.Facade) gin.HandlerFunc {
 			"duration": duration,
 		}
 
-		log.Info().
+		log.InfoCtx(c).
 			Fields(fields).
 			Msgf("%s %-7s %-30s (%s)",
 				coloredHttpStatus(fields["status"].(int)), fields["method"], fields["path"],
