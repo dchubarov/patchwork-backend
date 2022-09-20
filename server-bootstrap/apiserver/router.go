@@ -78,19 +78,21 @@ func loggingMiddleware(log logging.Facade) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		// TODO use uuid generation service rather than call xid directly
-		c.Set(logging.RequestCorrelationId, xid.New().String())
+		requestId := xid.New().String()
+		c.Set(logging.CorrelationRequestId, requestId)
 		c.Next()
 
 		duration := time.Since(start)
 		fields := map[string]any{
-			"method":   c.Request.Method,
-			"path":     c.Request.URL.Path,
-			"from":     c.ClientIP(),
-			"status":   c.Writer.Status(),
-			"duration": duration,
+			"method":                     c.Request.Method,
+			"path":                       c.Request.URL.Path,
+			"from":                       c.ClientIP(),
+			"status":                     c.Writer.Status(),
+			"duration":                   duration,
+			logging.CorrelationRequestId: requestId,
 		}
 
-		log.InfoCtx(c).
+		log.Info().
 			Fields(fields).
 			Msgf("%s %-7s %-30s (%s)",
 				coloredHttpStatus(fields["status"].(int)), fields["method"], fields["path"],

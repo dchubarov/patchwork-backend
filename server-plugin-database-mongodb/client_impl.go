@@ -97,7 +97,7 @@ func (ext *ClientExtension) Disconnect(ctx context.Context) error {
 }
 
 func (ext *ClientExtension) CallInTransaction(ctx context.Context, worker database.TxWorkerCallable) (any, error) {
-	logger := ext.log.LoggerCtx(ctx)
+	clog := ext.log.WithContext(ctx)
 
 	if session, err := ext.client.StartSession(); err == nil {
 		var txErr error
@@ -105,9 +105,9 @@ func (ext *ClientExtension) CallInTransaction(ctx context.Context, worker databa
 		defer func() {
 			if txErr != nil {
 				if abortErr := session.AbortTransaction(ctx); abortErr != nil {
-					logger.Error().Err(abortErr).Msg("CallInTransaction() abort transaction failed")
+					clog.Error().Err(abortErr).Msg("abort transaction failed")
 				} else {
-					logger.Debug().Msg("CallInTransaction() transaction aborted")
+					clog.Debug().Msg("transaction aborted")
 				}
 			}
 			session.EndSession(ctx)
@@ -115,26 +115,26 @@ func (ext *ClientExtension) CallInTransaction(ctx context.Context, worker databa
 
 		sc := mongo.NewSessionContext(ctx, session)
 		if err = sc.StartTransaction(ext.txOptions()); err != nil {
-			logger.Error().Err(err).Msg("CallInTransaction() start transaction failed")
+			clog.Error().Err(err).Msg("start transaction failed")
 			return nil, database.ErrClientTxFail
 		}
 
-		ext.log.Debug().Msg("CallInTransaction() begin transaction")
+		ext.log.Debug().Msg("begin transaction")
 		var result any
 		if result, txErr = worker(sc); txErr != nil {
-			logger.Error().Err(txErr).Msg("CallInTransaction() worker returned error")
+			clog.Error().Err(txErr).Msg("worker returned error")
 			return nil, txErr
 		}
 
 		if txErr = sc.CommitTransaction(sc); txErr != nil {
-			logger.Error().Err(txErr).Msg("CallInTransaction() commit failed")
+			clog.Error().Err(txErr).Msg("commit failed")
 			return nil, database.ErrClientTxFail
 		}
 
-		logger.Debug().Msg("CallInTransaction() transaction committed")
+		clog.Debug().Msg("transaction committed")
 		return result, nil
 	} else {
-		logger.Error().Err(err).Msg("CallInTransaction() start session failed")
+		clog.Error().Err(err).Msg("start session failed")
 		return nil, database.ErrClientTxFail
 	}
 }

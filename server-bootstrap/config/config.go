@@ -30,8 +30,8 @@ type Logging struct {
 	Level string `envconfig:"default=info"`
 	// NoColor specifies whether not to use ANSI colors in console
 	NoColor bool `envconfig:"optional"`
-	// Plugin specifies logging plugin name
-	Plugin string `envconfig:"optional"`
+	// Pretty specifies whether to use pretty (console) logging
+	Pretty bool `envconfig:"optional"`
 }
 
 // Root contains application configuration

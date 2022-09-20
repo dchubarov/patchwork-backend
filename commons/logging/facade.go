@@ -6,31 +6,26 @@ import (
 )
 
 const (
-	RequestCorrelationId = "request-id"
-	JobCorrelationId     = "job-id"
+	CorrelationRequestId = "request-id"
+	CorrelationJobId     = "job-id"
 )
-
-type CtxEnricher func(context.Context) any
 
 // Facade represents logging facade
 type Facade interface {
-	Logger() *zerolog.Logger
-	LoggerCtx(ctx context.Context) *zerolog.Logger
-
+	// WithComponent creates a child logger with specified component name
+	WithComponent(string) Facade
+	// WithContext creates a child logger with correlation fields from context
+	WithContext(context.Context) Facade
+	// Trace creates a new logging event at trace level
 	Trace() *zerolog.Event
+	// Debug creates a new logging event at debug level
 	Debug() *zerolog.Event
+	// Info creates a new logging event at info level
 	Info() *zerolog.Event
+	// Warn creates a new logging event at warn level
 	Warn() *zerolog.Event
+	// Error creates a new logging event at error level
 	Error() *zerolog.Event
+	// Panic creates a new logging event at panic level
 	Panic() *zerolog.Event
-
-	TraceCtx(ctx context.Context) *zerolog.Event
-	DebugCtx(ctx context.Context) *zerolog.Event
-	InfoCtx(ctx context.Context) *zerolog.Event
-	WarnCtx(ctx context.Context) *zerolog.Event
-	ErrorCtx(ctx context.Context) *zerolog.Event
-	PanicCtx(ctx context.Context) *zerolog.Event
-
-	WithComponent(component string) Facade
-	WithCtxEnricher(enricher CtxEnricher) Facade
 }

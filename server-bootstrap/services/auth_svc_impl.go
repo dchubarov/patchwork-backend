@@ -45,6 +45,7 @@ func (s *authServiceImpl) LoginInternal(context.Context, bool) (*service.AuthCon
 }
 
 func (s *authServiceImpl) LoginWithCredentials(ctx context.Context, authorization string, authorizationType int) (*service.AuthContext, error) {
+	clog := log.WithContext(ctx)
 	if authorizationType == service.AuthServiceHeaderCredentials {
 		if strings.HasPrefix(authorization, AuthSchemeBearer) {
 			tokenString := authorization[len(AuthSchemeBearer):]
@@ -52,7 +53,7 @@ func (s *authServiceImpl) LoginWithCredentials(ctx context.Context, authorizatio
 				if session := s.authRepo.AuthFindSession(ctx, sid); session != nil {
 					if user := s.accountRepo.AccountFindUser(ctx, session.User, false); user != nil {
 						if user.IsInternal() || user.IsSuspended() {
-							log.WarnCtx(ctx).Msgf("Login attempt blocked for user %q with flags %v", user.Login, user.Flags)
+							clog.Warn().Msgf("Login attempt blocked for user %q with flags %v", user.Login, user.Flags)
 							return nil, service.ErrServiceAuthLoginNotAllowed
 						}
 						return &service.AuthContext{Session: session, User: user}, nil
@@ -61,7 +62,7 @@ func (s *authServiceImpl) LoginWithCredentials(ctx context.Context, authorizatio
 					return nil, service.ErrServiceAuthNoSession
 				}
 			} else {
-				log.ErrorCtx(ctx).Msg("Token validation error")
+				clog.Error().Msg("Token validation error")
 			}
 		} else if strings.HasPrefix(authorization, AuthSchemeBasic) {
 			if buf, err := base64.StdEncoding.DecodeString(authorization[len(AuthSchemeBasic):]); err == nil {
@@ -94,9 +95,10 @@ func (s *authServiceImpl) LoginWithCredentials(ctx context.Context, authorizatio
 }
 
 func (s *authServiceImpl) Logout(ctx context.Context) error {
+	clog := log.WithContext(ctx)
 	if aac := GetAuthFromContext(ctx); aac != nil {
 		if !s.authRepo.AuthDeleteSession(ctx, aac.Session) {
-			log.ErrorCtx(ctx).Msgf("Could not destroy session %q", aac.Session.Sid)
+			clog.Error().Msgf("Could not destroy session %q", aac.Session.Sid)
 			return service.ErrServiceAuthFail
 		} else {
 			return nil

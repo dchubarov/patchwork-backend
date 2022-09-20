@@ -16,6 +16,7 @@ const sessionTimeToLive = time.Hour * 8 // TODO session ttl must be configurable
 // database.repos.AuthRepository methods
 
 func (ext *ClientExtension) AuthFindSession(ctx context.Context, sid string) *service.AuthSession {
+	clog := ext.log.WithContext(ctx)
 	oid, err := primitive.ObjectIDFromHex(sid)
 	if err != nil {
 		ext.log.Error().Err(err).Msgf("AuthFindSession() could not convert sid %q to ObjectID", sid)
@@ -31,14 +32,14 @@ func (ext *ClientExtension) AuthFindSession(ctx context.Context, sid string) *se
 	sessionResult := ext.sessionCollection(ctx).FindOne(ctx, filter)
 	if err = sessionResult.Decode(&sessionBson); err != nil {
 		if !errors.Is(err, mongo.ErrNoDocuments) {
-			ext.log.ErrorCtx(ctx).Err(err).Msg("AuthFindSession() query failed")
+			clog.Error().Err(err).Msg("AuthFindSession() query failed")
 		}
 		return nil
 	}
 
 	var session service.AuthSession
 	if err = sessionResult.Decode(&session); err != nil {
-		ext.log.ErrorCtx(ctx).Err(err).Msg("AuthFindSession() could not decode session result")
+		clog.Error().Err(err).Msg("AuthFindSession() could not decode session result")
 		return nil
 	}
 
@@ -47,6 +48,8 @@ func (ext *ClientExtension) AuthFindSession(ctx context.Context, sid string) *se
 }
 
 func (ext *ClientExtension) AuthNewSession(ctx context.Context, user *service.UserAccount) *service.AuthSession {
+	clog := ext.log.WithContext(ctx)
+
 	if user == nil || user.IsSuspended() {
 		ext.log.Error().Msgf("AuthNewSession(): user %q is suspended", user.Login)
 		return nil
@@ -66,7 +69,7 @@ func (ext *ClientExtension) AuthNewSession(ctx context.Context, user *service.Us
 	}
 
 	if result, err := ext.sessionCollection(ctx).InsertOne(ctx, sessionBson); err != nil || result.InsertedID == nil {
-		ext.log.ErrorCtx(ctx).Err(err).Msg("AuthNewSession(): insert failed")
+		clog.Error().Err(err).Msg("AuthNewSession(): insert failed")
 		return nil
 	} else {
 		session.Sid = result.InsertedID.(primitive.ObjectID).Hex()
@@ -75,6 +78,8 @@ func (ext *ClientExtension) AuthNewSession(ctx context.Context, user *service.Us
 }
 
 func (ext *ClientExtension) AuthDeleteSession(ctx context.Context, session *service.AuthSession) bool {
+	clog := ext.log.WithContext(ctx)
+
 	oid, err := primitive.ObjectIDFromHex(session.Sid)
 	if err != nil {
 		ext.log.Error().Err(err).Msgf("AuthDeleteSession() could not convert sid %q to ObjectID", session.Sid)
@@ -83,7 +88,7 @@ func (ext *ClientExtension) AuthDeleteSession(ctx context.Context, session *serv
 
 	filter := bson.D{{"_id", oid}}
 	if result, err := ext.sessionCollection(ctx).DeleteOne(ctx, filter); err != nil {
-		ext.log.ErrorCtx(ctx).Err(err).Msg("AuthDeleteSession() delete failed")
+		clog.Error().Err(err).Msg("AuthDeleteSession() delete failed")
 		return false
 	} else {
 		return result.DeletedCount == 1

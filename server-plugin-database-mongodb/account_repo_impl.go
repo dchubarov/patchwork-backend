@@ -16,8 +16,8 @@ const userAccountCollectionName = "account.user"
 // database.repos.AccountRepository methods
 
 func (ext *ClientExtension) AccountFindUser(ctx context.Context, login string, lookupByEmail bool) *service.UserAccount {
+	clog := ext.log.WithContext(ctx)
 	coll := ext.userAccountCollection(ctx)
-	clog := ext.contextLogger(ctx)
 
 	var filter bson.D
 	if lookupByEmail {
@@ -45,8 +45,8 @@ func (ext *ClientExtension) AccountFindUser(ctx context.Context, login string, l
 }
 
 func (ext *ClientExtension) AccountFindLoginUser(ctx context.Context, loginOrEmail string, passwordMatcher repos.PasswordMatcher) (*service.UserAccount, bool) {
+	clog := ext.log.WithContext(ctx)
 	coll := ext.userAccountCollection(ctx)
-	clog := ext.contextLogger(ctx)
 
 	filter := bson.D{
 		{"$or", bson.A{
@@ -95,7 +95,7 @@ func (ext *ClientExtension) userAccountCollection(ctx context.Context) *mongo.Co
 	}
 
 	if _, err := coll.Indexes().CreateMany(ctx, indices); err != nil {
-		ext.contextLogger(ctx).Error().Err(err).Msgf("userAccountCollection() could not create indices on %q",
+		ext.log.Error().Err(err).Msgf("userAccountCollection() could not create indices on %q",
 			userAccountCollectionName)
 	}
 

@@ -7,126 +7,103 @@ import (
 	"os"
 	"time"
 	"twowls.org/patchwork/commons/logging"
+	"twowls.org/patchwork/commons/util/singleton"
 	"twowls.org/patchwork/server/bootstrap/config"
 )
 
 const (
 	componentFieldName = "component"
-	hostFieldName      = "host"
+	hostFieldName      = "hostname"
 	pidFieldName       = "pid"
-	rootComponent      = "main"
+
+	rootComponent = "main"
+	unknownHost   = "unknown"
 )
 
 type defaultFacade struct {
+	logger    singleton.S[*zerolog.Logger]
 	parent    *defaultFacade
-	logger    *zerolog.Logger
+	enricher  func(context.Context, zerolog.Context) zerolog.Context
 	component string
-	enricher  logging.CtxEnricher
 }
 
-var root *defaultFacade
-
-// logging.Facade methods -> defaultFacade
-
-func (f *defaultFacade) Logger() *zerolog.Logger {
-	return f.logger
+var root = &defaultFacade{
+	logger:   singleton.Eager(newRootLogger),
+	enricher: defaultContextEnricher,
 }
 
-func (f *defaultFacade) LoggerCtx(ctx context.Context) *zerolog.Logger {
-	if f.enricher != nil {
-		l := f.logger.With().Fields(f.enricher(ctx)).Logger()
-		return &l
-	} else {
-		return f.logger
+// logging.Facade methods
+
+func (f *defaultFacade) WithComponent(component string) logging.Facade {
+	if len(component) < 1 {
+		return f
 	}
+
+	child := f.newChild(func() *zerolog.Logger {
+		componentPath := component
+		for p := f; p != nil; p = p.parent {
+			if len(p.component) > 0 {
+				componentPath = p.component + "." + componentPath
+			}
+		}
+
+		l := f.logger.Instance().With().
+			Str("component", formatComponentName(componentPath)).
+			Logger()
+
+		return &l
+	})
+
+	child.component = component
+	return child
+}
+
+func (f *defaultFacade) WithContext(ctx context.Context) logging.Facade {
+	return f.newChild(func() *zerolog.Logger {
+		lc := f.logger.Instance().With()
+		for p := f; p != nil; p = p.parent {
+			if p.enricher != nil {
+				lc = p.enricher(ctx, lc)
+			}
+		}
+		l := lc.Logger()
+		return &l
+	})
 }
 
 func (f *defaultFacade) Trace() *zerolog.Event {
-	return f.logger.Trace()
+	return f.logger.Instance().Trace()
 }
 
 func (f *defaultFacade) Debug() *zerolog.Event {
-	return f.logger.Debug()
+	return f.logger.Instance().Debug()
 }
 
 func (f *defaultFacade) Info() *zerolog.Event {
-	return f.logger.Info()
+	return f.logger.Instance().Info()
 }
 
 func (f *defaultFacade) Warn() *zerolog.Event {
-	return f.logger.Warn()
+	return f.logger.Instance().Warn()
 }
 
 func (f *defaultFacade) Error() *zerolog.Event {
-	return f.logger.Error()
+	return f.logger.Instance().Error()
 }
 
 func (f *defaultFacade) Panic() *zerolog.Event {
-	return f.logger.Panic()
+	return f.logger.Instance().Panic()
 }
 
-func (f *defaultFacade) TraceCtx(ctx context.Context) *zerolog.Event {
-	return f.enrichEvent(ctx, f.logger.Trace())
+// root logger interface
+
+func WithComponent(component string) logging.Facade {
+	return root.WithComponent(component)
 }
 
-func (f *defaultFacade) DebugCtx(ctx context.Context) *zerolog.Event {
-	return f.enrichEvent(ctx, f.logger.Debug())
+func WithContext(ctx context.Context) logging.Facade {
+	return root.WithContext(ctx)
 }
-
-func (f *defaultFacade) InfoCtx(ctx context.Context) *zerolog.Event {
-	return f.enrichEvent(ctx, f.logger.Info())
-}
-
-func (f *defaultFacade) WarnCtx(ctx context.Context) *zerolog.Event {
-	return f.enrichEvent(ctx, f.logger.Warn())
-}
-
-func (f *defaultFacade) ErrorCtx(ctx context.Context) *zerolog.Event {
-	return f.enrichEvent(ctx, f.logger.Error())
-}
-
-func (f *defaultFacade) PanicCtx(ctx context.Context) *zerolog.Event {
-	return f.enrichEvent(ctx, f.logger.Panic())
-}
-
-func (f *defaultFacade) enrichEvent(ctx context.Context, event *zerolog.Event) *zerolog.Event {
-	if f.enricher != nil {
-		return event.Fields(f.enricher(ctx))
-	} else {
-		return event
-	}
-}
-
-func (f *defaultFacade) WithComponent(component string) logging.Facade {
-	label := component
-	for p := f; p != nil; p = p.parent {
-		if len(p.component) > 0 {
-			label = p.component + "." + label
-		}
-	}
-
-	subLogger := f.logger.With().
-		Str(componentFieldName, prettyComponent(label)).
-		Logger()
-
-	return &defaultFacade{
-		parent:    f,
-		logger:    &subLogger,
-		component: component,
-		enricher:  f.enricher,
-	}
-}
-
-func (f *defaultFacade) WithCtxEnricher(enricher logging.CtxEnricher) logging.Facade {
-	return &defaultFacade{
-		parent:    f,
-		logger:    f.logger,
-		component: f.component,
-		enricher:  enricher,
-	}
-}
-
-// global convenience functions
 
 func Trace() *zerolog.Event {
 	return root.Trace()
@@ -152,98 +129,78 @@ func Panic() *zerolog.Event {
 	return root.Panic()
 }
 
-func TraceCtx(ctx context.Context) *zerolog.Event {
-	return root.TraceCtx(ctx)
-}
-
-func DebugCtx(ctx context.Context) *zerolog.Event {
-	return root.DebugCtx(ctx)
-}
-
-func InfoCtx(ctx context.Context) *zerolog.Event {
-	return root.InfoCtx(ctx)
-}
-
-func WarnCtx(ctx context.Context) *zerolog.Event {
-	return root.WarnCtx(ctx)
-}
-
-func ErrorCtx(ctx context.Context) *zerolog.Event {
-	return root.ErrorCtx(ctx)
-}
-
-func PanicCtx(ctx context.Context) *zerolog.Event {
-	return root.PanicCtx(ctx)
-}
-
-func WithComponent(component string) logging.Facade {
-	return root.WithComponent(component)
-}
-
-func WithCtxEnricher(enricher logging.CtxEnricher) logging.Facade {
-	return root.WithCtxEnricher(enricher)
-}
-
 // private
 
-func init() {
+func (f *defaultFacade) newChild(loggerFactory func() *zerolog.Logger) *defaultFacade {
+	return &defaultFacade{
+		logger: singleton.Lazy(loggerFactory),
+		parent: f,
+	}
+}
+
+func newRootLogger() *zerolog.Logger {
+	pid := os.Getpid()
 	hostname, err := os.Hostname()
 	if err != nil {
-		hostname = "unknown"
+		hostname = unknownHost
 	}
 
-	console := zerolog.ConsoleWriter{
-		Out:        os.Stdout,
-		NoColor:    config.Values().Logging.NoColor,
-		TimeFormat: time.Stamp,
-		PartsOrder: []string{
-			zerolog.TimestampFieldName,
-			zerolog.LevelFieldName,
-			componentFieldName,
-			zerolog.CallerFieldName,
-			zerolog.MessageFieldName,
-		},
-		FieldsExclude: []string{
-			componentFieldName,
-			hostFieldName,
-			pidFieldName,
-		},
+	var loggerInit zerolog.Context
+	if config.Values().Logging.Pretty {
+		console := zerolog.ConsoleWriter{
+			Out:        os.Stdout,
+			NoColor:    config.Values().Logging.NoColor,
+			TimeFormat: time.Stamp,
+			PartsOrder: []string{
+				zerolog.TimestampFieldName,
+				zerolog.LevelFieldName,
+				componentFieldName,
+				zerolog.CallerFieldName,
+				zerolog.MessageFieldName,
+			},
+			FieldsExclude: []string{
+				componentFieldName,
+				hostFieldName,
+				pidFieldName,
+			},
+		}
+		loggerInit = zerolog.New(console).With().Caller()
+	} else {
+		loggerInit = zerolog.New(zerolog.MultiLevelWriter(os.Stdout)).With()
 	}
 
-	logger := zerolog.New(console).With().
-		Str(componentFieldName, prettyComponent(rootComponent)).
+	loggerInit = loggerInit.
+		Str(componentFieldName, formatComponentName(rootComponent)).
 		Str(hostFieldName, hostname).
-		Int(pidFieldName, os.Getpid()).
-		Timestamp().
-		//Caller().
-		Logger()
+		Int(pidFieldName, pid).
+		Timestamp()
 
+	logger := loggerInit.Logger()
 	if level, err := zerolog.ParseLevel(config.Values().Logging.Level); err == nil {
 		logger = logger.Level(level)
 	}
 
-	root = &defaultFacade{
-		logger:   &logger,
-		enricher: defaultCtxEnricher,
-	}
+	return &logger
 }
 
-func prettyComponent(component string) string {
-	return fmt.Sprintf("[%12s]", component)
+func defaultContextEnricher(ctx context.Context, lc zerolog.Context) zerolog.Context {
+	// add correlation request id as logger field
+	if requestId, ok := ctx.Value(logging.CorrelationRequestId).(string); ok {
+		lc = lc.Str(logging.CorrelationRequestId, requestId)
+	}
+
+	// add correlation job id as logger field
+	if jobId, ok := ctx.Value(logging.CorrelationJobId).(string); ok {
+		lc = lc.Str(logging.CorrelationJobId, jobId)
+	}
+
+	return lc
 }
 
-func defaultCtxEnricher(ctx context.Context) any {
-	requestId, hasRequestId := ctx.Value(logging.RequestCorrelationId).(string)
-	jobId, hasJobId := ctx.Value(logging.JobCorrelationId).(string)
-	if hasRequestId || hasJobId {
-		m := make(map[string]any)
-		if hasRequestId {
-			m[logging.RequestCorrelationId] = requestId
-		}
-		if hasJobId {
-			m[logging.JobCorrelationId] = jobId
-		}
-		return m
+func formatComponentName(component string) string {
+	if config.Values().Logging.Pretty {
+		return fmt.Sprintf("[%16s]", component)
+	} else {
+		return component
 	}
-	return nil
 }
