@@ -150,6 +150,6 @@ func (ext *ClientExtension) RunInTransaction(ctx context.Context, worker databas
 
 func (ext *ClientExtension) txOptions() *options.TransactionOptions {
 	return options.Transaction().
-		SetReadConcern(readconcern.Snapshot()).
+		SetReadConcern(readconcern.Local()).
 		SetWriteConcern(writeconcern.New(writeconcern.WMajority()))
 }

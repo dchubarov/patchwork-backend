@@ -21,12 +21,14 @@ const (
 type authServiceImpl struct {
 	accountRepo repos.AccountRepository
 	authRepo    repos.AuthRepository
+	journalRepo repos.JournalRepository
 }
 
 var authService = singleton.Lazy(func() *authServiceImpl {
 	return &authServiceImpl{
 		database.Client().(repos.AccountRepository),
 		database.Client().(repos.AuthRepository),
+		database.Client().(repos.JournalRepository),
 	}
 })
 
@@ -77,14 +79,20 @@ func (s *authServiceImpl) LoginWithCredentials(ctx context.Context, authorizatio
 							return nil, service.ErrServiceAuthFail
 						}
 
+						if err != nil {
+							return nil, err
+						}
+
 						token, err := buildToken(session)
 						if err != nil {
 							return nil, service.ErrServiceAuthFail
 						}
 
+						s.journalRepo.JournalAddEvent(ctx, "LOGIN_SUCCEEDED", username, nil)
 						return &service.AuthContext{Session: session, User: user, Token: token}, nil
 					}
 
+					s.journalRepo.JournalAddEvent(ctx, "LOGIN_FAILED_INVALID_CREDENTIALS", username, nil)
 					return nil, service.ErrServiceAuthBadCredentials
 				}
 			}
