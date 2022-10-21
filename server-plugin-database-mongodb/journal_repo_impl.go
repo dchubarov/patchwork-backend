@@ -8,15 +8,18 @@ import (
 
 const journalEventCollectionName = "journal.event"
 
-func (ext *ClientExtension) JournalAddEvent(ctx context.Context, event string, user string, data map[string]any) {
-	document := bson.D{
-		{"event", event},
-		{"user", user},
-		{"created", time.Now().UTC()},
+var emptyDetails = bson.M{}
+
+func (ext *ClientExtension) JournalAddEvent(ctx context.Context, event string, user string, details map[string]any) {
+	if len(details) < 1 {
+		details = emptyDetails
 	}
 
-	if len(data) > 0 {
-		document = append(document, bson.E{Key: "data", Value: data})
+	document := bson.D{
+		{"timestamp", time.Now()},
+		{"event", event},
+		{"user", user},
+		{"details", details},
 	}
 
 	_, err := ext.db.Collection(journalEventCollectionName).InsertOne(ctx, document)

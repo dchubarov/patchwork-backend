@@ -88,7 +88,7 @@ func (s *authServiceImpl) LoginWithCredentials(ctx context.Context, authorizatio
 							return nil, service.ErrServiceAuthFail
 						}
 
-						s.journalRepo.JournalAddEvent(ctx, "LOGIN_SUCCEEDED", username, nil)
+						s.journalRepo.JournalAddEvent(ctx, "LOGIN_SUCCEEDED", user.Login, nil)
 						return &service.AuthContext{Session: session, User: user, Token: token}, nil
 					}
 
