@@ -2,10 +2,11 @@ package main
 
 import (
 	"twowls.org/patchwork/commons/extension"
+	"twowls.org/patchwork/plugin/database/mongodb/client"
 )
 
 type mongodbPlugin struct {
-	clientExtension *ClientExtension
+	clientExtension *client.ClientExtension
 }
 
 func (p *mongodbPlugin) Description() string {
@@ -17,5 +18,5 @@ func (p *mongodbPlugin) DefaultExtension() extension.Extension {
 }
 
 func PluginInfo() (extension.PluginInfo, error) {
-	return &mongodbPlugin{new(ClientExtension)}, nil
+	return &mongodbPlugin{new(client.ClientExtension)}, nil
 }
